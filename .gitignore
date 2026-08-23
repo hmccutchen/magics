@@ -1,0 +1,24 @@
+# DragonRuby runtime output
+logs/
+tmp/
+errors/
+*.log
+
+# Screenshots written by args.outputs.screenshots during debugging
+/*.png
+
+# Editor / tooling
+.ruby-lsp/
+.DS_Store
+
+# DragonRuby's bundled sample sprites -- shipped with the engine, not ours.
+# Listed individually rather than ignoring sprites/ wholesale, so that our own
+# art dropped into sprites/ is tracked normally.
+sprites/circle/
+sprites/hexagon/
+sprites/isometric/
+sprites/misc/
+sprites/square/
+sprites/t-pose/
+sprites/tile/
+sprites/triangle/
