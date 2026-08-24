@@ -17,7 +17,7 @@
 # We clear only our own keys rather than calling $gtk.reset, so this stays a
 # narrow, predictable action rather than an engine-wide restart.
 module GameState
-  VERSION = 7
+  VERSION = 8
 
   # Every args.state key that holds an entity built from Config defaults.
   OWNED_KEYS = [:player, :item, :seam, :enemy, :rock]

@@ -63,6 +63,22 @@ module Config
   PLAYER_SPRITE_DIR  = 'sprites/player'
   PLAYER_FRAME_COUNT = 8
 
+  # Ground covered per animation frame. The full 8-frame cycle therefore spans
+  # 160 units, which at the walk speed of 4/tick is ~40 ticks, or about
+  # two-thirds of a second per stride -- roughly a walking pace.
+  WALK_FRAME_DISTANCE = 20.0
+
+  # Paths built once at load rather than per tick, both to avoid string
+  # allocation every frame and to keep the zero-padding in a single place.
+  # Padded manually instead of with rjust/format: this is mruby, and it has
+  # already surprised us once (required keyword arguments silently return nil),
+  # so plain string operations are the safer habit.
+  PLAYER_FRAMES = (0...PLAYER_FRAME_COUNT).map do |index|
+    padded = index.to_s
+    padded = "0#{padded}" while padded.length < 3
+    "#{PLAYER_SPRITE_DIR}/frame_#{padded}.png"
+  end
+
   # Footprint: the entity's box on the GROUND PLANE, used for collision.
   # FW is horizontal in pixels; FD is depth in world units. This is deliberately
   # not the same as the drawn rectangle -- collision happens in game space, and

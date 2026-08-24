@@ -44,6 +44,14 @@ module Player
       # goes to 0 when walking straight along the depth axis. The sprite must
       # never face "nowhere", so this only updates on actual horizontal input.
       player.heading_x = 1
+
+      # Ground covered so far, wrapped to one full animation cycle. Driving the
+      # walk cycle off distance rather than a timer keeps the feet locked to
+      # ground speed: the cadence follows the speed automatically, so diagonal
+      # movement (which is slower) animates slower too, and there is no
+      # foot-sliding to tune away.
+      player.walk_distance = 0.0
+      player.moving        = false
     end
   end
 
@@ -78,9 +86,8 @@ module Player
     }
   end
 
-  # Static for now -- the walk cycle is the next step.
   def self.sprite_path args
-    "#{Config::PLAYER_SPRITE_DIR}/frame_000.png"
+    Config::PLAYER_FRAMES[frame_index(args)]
   end
 
   def self.move args
@@ -92,7 +99,14 @@ module Player
     dx = args.inputs.left_right
     dd = args.inputs.up_down
 
-    return if dx.zero? && dd.zero?
+    player.moving = !(dx.zero? && dd.zero?)
+    return unless player.moving
+
+    # Captured before the move so the distance accumulated reflects what
+    # actually happened. Walking into a clamp covers no ground, and therefore
+    # correctly does not advance the animation.
+    start_x     = player.x
+    start_depth = player.depth
 
     # Without this, holding two directions moves you ~41% faster diagonally.
     factor = (dx.zero? || dd.zero?) ? 1.0 : Config::DIAGONAL_FACTOR
@@ -114,5 +128,32 @@ module Player
       player.fw,
       player.depth
     )
+
+    accumulate_distance player, start_x, start_depth
+  end
+
+  # Adds the ground actually covered this frame, wrapped to one cycle so the
+  # accumulator stays bounded over a long session instead of drifting into
+  # float imprecision.
+  #
+  # Same mixed-unit caveat as the enemy's patrol: x is pixels and depth is world
+  # units, so this magnitude is not one consistent real-world quantity. It is
+  # driving an animation cadence, not physics, so eyeballed is fine.
+  def self.accumulate_distance player, start_x, start_depth
+    moved_x     = player.x - start_x
+    moved_depth = player.depth - start_depth
+    moved       = Math.sqrt((moved_x * moved_x) + (moved_depth * moved_depth))
+
+    cycle = Config::WALK_FRAME_DISTANCE * Config::PLAYER_FRAME_COUNT
+    player.walk_distance = (player.walk_distance + moved) % cycle
+  end
+
+  # Which frame of the walk cycle to show. Standing still resets to frame 0
+  # rather than freezing mid-stride, since the art has no dedicated idle pose.
+  def self.frame_index args
+    player = args.state.player
+    return 0 unless player.moving
+
+    (player.walk_distance / Config::WALK_FRAME_DISTANCE).to_i % Config::PLAYER_FRAME_COUNT
   end
 end
