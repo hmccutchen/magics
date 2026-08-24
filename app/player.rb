@@ -38,6 +38,12 @@ module Player
       # standing still, so you can stop, turn, and throw. Starts facing right.
       player.facing_x     = 1.0
       player.facing_depth = 0.0
+
+      # Which way the sprite faces: -1 left, 1 right. Kept SEPARATE from
+      # facing_x because that one is the throw's aim vector and legitimately
+      # goes to 0 when walking straight along the depth axis. The sprite must
+      # never face "nowhere", so this only updates on actual horizontal input.
+      player.heading_x = 1
     end
   end
 
@@ -51,13 +57,30 @@ module Player
     args.state.player.recovering_until > args.state.tick_count
   end
 
-  # Blinks between the normal and hit colors while recovering, so the immunity
-  # window is legible without needing a HUD element.
-  def self.color args
-    return Config::COLOR_PLAYER unless recovering? args
+  # Fades in and out while recovering, so the immunity window stays legible
+  # without a HUD element. The gray-box swapped colours; a sprite blinks by
+  # dropping alpha instead.
+  def self.alpha args
+    return 255 unless recovering? args
 
     phase = (args.state.tick_count / Config::RECOVERY_BLINK_RATE).to_i
-    phase.even? ? Config::COLOR_PLAYER_HIT : Config::COLOR_PLAYER
+    phase.even? ? Config::RECOVERY_BLINK_ALPHA : 255
+  end
+
+  # Everything the renderer needs to draw the player this frame.
+  def self.drawable args
+    {
+      entity: args.state.player,
+      path: sprite_path(args),
+      flip: args.state.player.heading_x < 0,
+      alpha: alpha(args),
+      foot_pad_ratio: Config::PLAYER_FOOT_PAD_RATIO
+    }
+  end
+
+  # Static for now -- the walk cycle is the next step.
+  def self.sprite_path args
+    "#{Config::PLAYER_SPRITE_DIR}/frame_000.png"
   end
 
   def self.move args
@@ -76,15 +99,19 @@ module Player
 
     player.facing_x     = dx
     player.facing_depth = dd
+    player.heading_x    = dx unless dx.zero?
 
     player.depth = World.clamp_depth(
       player.depth + (dd * Config::PLAYER_SPEED_DEPTH * factor)
     )
 
-    # Clamped after depth so the bound reflects the width at the NEW depth.
+    # Clamped after depth, so the bound reflects the width at the NEW depth,
+    # and against the FOOTPRINT width rather than the drawn width -- the sprite
+    # canvas is mostly transparent padding, so clamping by `w` would stop the
+    # player a canvas-half-width short of each edge for no visible reason.
     player.x = World.clamp_x(
       player.x + (dx * Config::PLAYER_SPEED_X * factor),
-      player.w,
+      player.fw,
       player.depth
     )
   end

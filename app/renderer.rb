@@ -23,8 +23,8 @@ module Renderer
   # args.state stays game logic and does not accumulate presentation data.
   def self.entities args
     list = [
-      { entity: args.state.player, color: Player.color(args) },
-      { entity: args.state.enemy,  color: Config::COLOR_ENEMY }
+      Player.drawable(args),
+      { entity: args.state.enemy, color: Config::COLOR_ENEMY }
     ]
 
     # Each module owns the rule for whether it is on screen; the renderer just
@@ -42,8 +42,30 @@ module Renderer
   def self.push args, drawable
     rect = World.screen_rect drawable[:entity], (drawable[:lift] || 0)
 
-    args.outputs.sprites << Scene.solid(
-      rect[:x], rect[:y], rect[:w], rect[:h], drawable[:color]
-    )
+    if drawable[:path]
+      args.outputs.sprites << Scene.image(
+        rect[:x],
+        rect[:y] - foot_inset(rect, drawable),
+        rect[:w],
+        rect[:h],
+        drawable[:path],
+        drawable[:flip],
+        drawable[:alpha] || 255
+      )
+    else
+      args.outputs.sprites << Scene.solid(
+        rect[:x], rect[:y], rect[:w], rect[:h], drawable[:color]
+      )
+    end
+  end
+
+  # How far to push a sprite DOWN so its feet, rather than its canvas bottom,
+  # land on the ground plane. Scales with the drawn size, so the character stays
+  # planted at every depth instead of drifting upward as it grows.
+  def self.foot_inset rect, drawable
+    ratio = drawable[:foot_pad_ratio]
+    return 0 unless ratio
+
+    rect[:h] * ratio
   end
 end

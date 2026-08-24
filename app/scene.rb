@@ -94,6 +94,21 @@ module Scene
     { x: x, y: y, w: w, h: h, path: :solid, a: alpha, **rgb(color) }
   end
 
+  # A textured sprite. Same shape as `solid` -- which is itself a sprite with
+  # the built-in :solid path -- so both go into the same ordered collection and
+  # sort against each other by depth.
+  #
+  # `flip_horizontally` is how DragonRuby mirrors a sprite, which is what lets
+  # one right-facing art set serve both directions.
+  def self.image x, y, w, h, path, flip = false, alpha = 255
+    {
+      x: x, y: y, w: w, h: h,
+      path: path,
+      flip_horizontally: flip,
+      a: alpha
+    }
+  end
+
   # Expand a [r, g, b] array into the keys DragonRuby's render hashes want.
   def self.rgb color
     { r: color[0], g: color[1], b: color[2] }

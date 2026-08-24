@@ -30,9 +30,38 @@ module Config
 
   # --- Player ---------------------------------------------------------------
 
-  # Size at SCALE_NEAR. Actual drawn size is these times the depth scale.
-  PLAYER_W = 40
-  PLAYER_H = 90
+  # --- Player sprite geometry -----------------------------------------------
+  #
+  # The art is a 40x40 canvas that the figure does NOT fill. Measured from the
+  # PNG alpha channel, consistently across all 8 frames:
+  #
+  #   figure occupies roughly 19-21 x 25-26 px
+  #   7-8 fully transparent rows sit BELOW the feet
+  #
+  # Those empty rows matter: we plant an entity's rect bottom on ground_y, so
+  # drawing the raw canvas would leave the character hovering, and the hover
+  # would grow with scale. PLAYER_FOOT_PAD is subtracted at draw time instead.
+  # We do not trim the PNGs -- the 7-vs-8px variation IS the walk cycle's bob.
+  SPRITE_CANVAS   = 40    # source canvas, px
+  PLAYER_FIGURE_H = 26    # visible figure height within that canvas, px
+  PLAYER_FOOT_PAD = 7     # transparent rows below the feet, px
+
+  # Drawn canvas size at SCALE_NEAR. Chosen so the FIGURE lands at ~90px, which
+  # is what every other constant in this file was tuned against:
+  #   90 * (40 / 26) = 138
+  PLAYER_W = 138
+  PLAYER_H = 138
+
+  # Fraction of the drawn height that is empty canvas beneath the feet.
+  PLAYER_FOOT_PAD_RATIO = PLAYER_FOOT_PAD.to_f / SPRITE_CANVAS
+
+  # Alpha used on the blink-off phase of the post-hit recovery window. The
+  # gray-box used a flat colour swap; a sprite blinks by fading instead.
+  RECOVERY_BLINK_ALPHA = 90
+
+  # Frame files, referenced as sprites/player/frame_000.png .. frame_007.png.
+  PLAYER_SPRITE_DIR  = 'sprites/player'
+  PLAYER_FRAME_COUNT = 8
 
   # Footprint: the entity's box on the GROUND PLANE, used for collision.
   # FW is horizontal in pixels; FD is depth in world units. This is deliberately
