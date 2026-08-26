@@ -40,6 +40,13 @@ module Player
       # foot-sliding to tune away.
       player.walk_distance = 0.0
       player.moving        = false
+
+      # Ground actually covered this frame, per axis. Published so Pushable can
+      # displace an object by exactly what the player moved, which is what
+      # keeps the two from separating without any collision response. Reset
+      # every frame, so it is never stale.
+      player.moved_x     = 0.0
+      player.moved_depth = 0.0
     end
   end
 
@@ -82,7 +89,12 @@ module Player
     dd = args.inputs.up_down
 
     player.moving = !(dx.zero? && dd.zero?)
-    return unless player.moving
+
+    unless player.moving
+      player.moved_x     = 0.0
+      player.moved_depth = 0.0
+      return
+    end
 
     # Captured before the move so the distance accumulated reflects what
     # actually happened. Walking into a clamp covers no ground, and therefore
@@ -122,8 +134,11 @@ module Player
   # units, so this magnitude is not one consistent real-world quantity. It is
   # driving an animation cadence, not physics, so eyeballed is fine.
   def self.accumulate_distance player, start_x, start_depth
-    moved_x     = player.x - start_x
-    moved_depth = player.depth - start_depth
+    player.moved_x     = player.x - start_x
+    player.moved_depth = player.depth - start_depth
+
+    moved_x     = player.moved_x
+    moved_depth = player.moved_depth
     moved       = Math.sqrt((moved_x * moved_x) + (moved_depth * moved_depth))
 
     cycle = Config::WALK_CYCLE_DISTANCE

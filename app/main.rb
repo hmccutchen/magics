@@ -7,6 +7,7 @@ require 'app/scene.rb'
 require 'app/player.rb'
 require 'app/seams.rb'
 require 'app/creature.rb'
+require 'app/pushable.rb'
 require 'app/rock.rb'
 require 'app/renderer.rb'
 
@@ -28,6 +29,11 @@ module Main
 
   def update args
     Player.update args
+
+    # After Player, so a pushable is displaced by movement that has already
+    # happened this frame rather than by last frame's leftovers.
+    Pushable.update args
+
     Seams.update args
     Creature.update args
 

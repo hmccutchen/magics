@@ -33,6 +33,10 @@ module Renderer
       list << { entity: seam, color: Config::COLOR_SEAM }
     end
 
+    args.state.pushables.each do |pushable|
+      list << { entity: pushable, color: Config::COLOR_PUSHABLE }
+    end
+
     if args.state.rock
       list << { entity: args.state.rock, color: Config::COLOR_ROCK, lift: Rock.lift(args) }
     end

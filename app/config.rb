@@ -112,6 +112,15 @@ module Config
   # creature's behaviour, not the object's flight.
   CREATURE_LINGER_TICKS = 90
 
+  # --- Pushing --------------------------------------------------------------
+  #
+  # A pushable is displaced by the player's own movement for the frame, scaled
+  # by this. 1.0 means it travels exactly as fast as you walk, which is the
+  # only value at which it can neither outrun you nor be walked through.
+  # Lower values read as "heavy" but let the player overlap the object, since
+  # nothing blocks the player yet.
+  PUSH_FACTOR = 1.0
+
   # --- Throw / rock ---------------------------------------------------------
   #
   # The player's only "action". It never harms the creature -- it just makes a
@@ -148,5 +157,6 @@ module Config
   COLOR_SEAM       = [138, 210, 196]
   COLOR_CREATURE   = [176, 92, 162]
   COLOR_ROCK       = [206, 206, 214]
+  COLOR_PUSHABLE   = [150, 138, 108]
   COLOR_REGION_RESOLVED = [138, 210, 196]
 end
