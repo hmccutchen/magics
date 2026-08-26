@@ -41,6 +41,13 @@ module Config
   # tuning constants; this file keeps only what is tuned by feel.
   CHARACTER_HEIGHT_PX = 90
 
+  # Draws region outlines and names over the scene. Authoring tool, not a HUD:
+  # region bounds are written in (x, depth) units that correspond to nothing
+  # visible on screen, and unlike a numeric readout this shows SPATIAL
+  # information that cannot be read any other way. Delete once regions are
+  # placed.
+  SHOW_REGIONS = false
+
   # Alpha used on the blink-off phase of the post-hit recovery window. The
   # gray-box used a flat colour swap; a sprite blinks by fading instead.
   RECOVERY_BLINK_ALPHA = 90

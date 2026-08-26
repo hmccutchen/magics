@@ -24,6 +24,36 @@ module Scene
     ground args
     depth_lines args
     horizon args
+    region_overlay args if Config::SHOW_REGIONS
+  end
+
+  # Outlines each region and labels it. Drawn as four thin solids per region
+  # rather than a border primitive, so it stays in args.outputs.sprites and
+  # cannot disturb the single-collection ordering the depth sort depends on.
+  def self.region_overlay args
+    Regions::REGIONS.each do |region|
+      bounds = Regions.screen_bounds region
+      color  = Regions.resolved?(args, region[:name]) ? Config::COLOR_BANNER : Config::COLOR_HORIZON
+
+      outline args, bounds, color
+
+      args.outputs.labels << {
+        x: bounds[:x] + 8,
+        y: bounds[:y] + bounds[:h] - 8,
+        text: region[:name].to_s,
+        size_px: 16,
+        **rgb(color)
+      }
+    end
+  end
+
+  def self.outline args, bounds, color
+    thickness = 2
+
+    args.outputs.sprites << solid(bounds[:x], bounds[:y], bounds[:w], thickness, color)
+    args.outputs.sprites << solid(bounds[:x], bounds[:y] + bounds[:h] - thickness, bounds[:w], thickness, color)
+    args.outputs.sprites << solid(bounds[:x], bounds[:y], thickness, bounds[:h], color)
+    args.outputs.sprites << solid(bounds[:x] + bounds[:w] - thickness, bounds[:y], thickness, bounds[:h], color)
   end
 
   def self.sky args
