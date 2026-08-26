@@ -121,6 +121,19 @@ module Config
   # nothing blocks the player yet.
   PUSH_FACTOR = 1.0
 
+  # The push pose is a single held frame, so without this he slides across the
+  # ground with no sign of effort. A small rise and fall gives the movement a
+  # footfall to read against.
+  #
+  # Peak height in screen pixels at full scale. Stopgap until push-walk art
+  # exists, at which point this and Player.push_bob both go.
+  PUSH_BOB_PX = 3
+
+  # Footfalls per full walk cycle. Two, because a cycle is a left and a right
+  # step -- keeping it expressed in steps rather than as a raw frequency means
+  # it stays correct if WALK_CYCLE_DISTANCE is retuned.
+  PUSH_BOB_STEPS = 2
+
   # --- Throw / rock ---------------------------------------------------------
   #
   # The player's only "action". It never harms the creature -- it just makes a

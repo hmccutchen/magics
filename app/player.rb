@@ -119,8 +119,28 @@ module Player
     {
       entity: player,
       sprite: pose[0],
-      flip: pose[1]
+      flip: pose[1],
+      lift: push_bob(player)
     }
+  end
+
+  # Vertical rise and fall while pushing, in screen pixels.
+  #
+  # Driven by walk_distance rather than a timer, for the same reason the walk
+  # cycle is: cadence then follows ground speed automatically, so a slower
+  # diagonal push bobs slower too and there is no foot-sliding to tune away.
+  #
+  # abs(sin) rather than sin, so the body only ever rises off the ground line
+  # and returns to it -- one hump per footfall, never dipping below his feet.
+  #
+  # Scaled by depth so the bob shrinks along with him as he walks away. The
+  # thrown rock's arc deliberately does NOT do this, because its height reads
+  # as distance travelled rather than as part of the figure.
+  def self.push_bob player
+    progress = player.walk_distance / Config::WALK_CYCLE_DISTANCE
+    hump     = Math.sin(progress * Math::PI * Config::PUSH_BOB_STEPS).abs
+
+    hump * Config::PUSH_BOB_PX * World.scale(player.depth)
   end
 
   # Position through the walk cycle, 0.0 to 1.0. Standing still reports 0.0
