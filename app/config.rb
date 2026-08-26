@@ -166,6 +166,24 @@ module Config
   PUSH_CONTACT_INSET_X     = 0
   PUSH_CONTACT_INSET_DEPTH = 10
 
+  # --- How a pushed object LOOKS moving ------------------------------------
+  #
+  # Presentation only. A pushed object's real position stays locked to the
+  # player -- that is what makes collision correct without any resolution
+  # step -- but it is DRAWN trailing slightly behind and catching up, so it
+  # gives a little under the hand instead of sliding like a decal.
+  #
+  # Nothing in the simulation reads these. Collision, blocking and the seam
+  # all use the true position.
+  #
+  # Fraction of the lag remaining after each frame. Lower snaps tighter,
+  # higher drags more. At 0.75 a steady push settles about 6-7px behind.
+  PUSH_LAG_DECAY = 0.75
+
+  # Ceiling on the trail, so a restart or a hot-reload jump cannot fling the
+  # drawn box across the stage.
+  PUSH_LAG_MAX = 12.0
+
   # The push pose is a single held frame, so without this he slides across the
   # ground with no sign of effort. A small rise and fall gives the movement a
   # footfall to read against.
@@ -188,17 +206,32 @@ module Config
   ROCK_FW = 20
   ROCK_FD = 18
 
-  # How far the rock travels from the player, per axis, at full facing.
-  # Separate constants because x is pixels and depth is world units.
-  THROW_DISTANCE_X     = 280
-  THROW_DISTANCE_DEPTH = 95
+  # Holding the throw key winds it up. Frames to reach a full-strength throw;
+  # releasing earlier throws proportionally shorter. Short enough to stay
+  # tactile rather than becoming a meter to manage.
+  THROW_CHARGE_TICKS = 36
 
-  # Frames the rock spends in the air. At 60fps this is ~0.4s.
-  THROW_FLIGHT_TICKS = 24
+  # How far the rock travels from the player, per axis, at a tap and at a full
+  # wind-up. Separate per axis because x is pixels and depth is world units.
+  #
+  # The minimum is deliberately well short of CREATURE_STARTLE_RADIUS, so a
+  # tap can be dropped near your own feet without startling anything, and the
+  # maximum comfortably past it.
+  THROW_DISTANCE_X_MIN     = 110
+  THROW_DISTANCE_X_MAX     = 340
+  THROW_DISTANCE_DEPTH_MIN = 38
+  THROW_DISTANCE_DEPTH_MAX = 115
 
-  # Peak height of the rock's visual arc, in screen pixels. Purely cosmetic --
-  # the rock's depth (and therefore its draw order) follows the ground path.
-  ROCK_ARC_HEIGHT = 90
+  # Frames in the air, scaled with the throw's strength. A short toss that hung
+  # in the air as long as a full one reads as floating.
+  THROW_FLIGHT_TICKS_MIN = 15
+  THROW_FLIGHT_TICKS_MAX = 30
+
+  # Peak height of the rock's visual arc, in screen pixels, also scaled with
+  # strength. Purely cosmetic -- the rock's depth, and therefore its draw
+  # order, follows the ground path regardless.
+  ROCK_ARC_HEIGHT_MIN = 40
+  ROCK_ARC_HEIGHT_MAX = 100
 
   # Frames the landed rock stays visible before disappearing.
   ROCK_LINGER_TICKS = 36

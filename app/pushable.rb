@@ -74,6 +74,11 @@ module Pushable
         entity.h     = pushable[:h]
         entity.fw    = pushable[:fw]
         entity.fd    = pushable[:fd]
+
+        # How far BEHIND its true position the object is drawn. Presentation
+        # only -- see settle_lag. Nothing in the simulation reads these.
+        entity.lag_x     = 0.0
+        entity.lag_depth = 0.0
       end
     end
   end
@@ -82,6 +87,25 @@ module Pushable
   # and so the renderer never sees a nil list on the first frame.
   def self.update args
     defaults args
+
+    args.state.pushables.each do |pushable|
+      settle_lag pushable
+    end
+  end
+
+  # Eases the drawn position back toward the true one.
+  #
+  # A pushed object's real position stays locked to the player, which is what
+  # makes collision exact without a resolution step. Drawing it exactly there
+  # too made it slide like a decal stuck to his hands. Instead the drawing
+  # trails and catches up, so the thing gives a little under the hand and
+  # settles when he stops.
+  #
+  # Runs before Player, so lag added by this frame's push decays starting next
+  # frame rather than being wiped the instant it appears.
+  def self.settle_lag pushable
+    pushable.lag_x     *= Config::PUSH_LAG_DECAY
+    pushable.lag_depth *= Config::PUSH_LAG_DECAY
   end
 
   # Where the player actually ends up, given where they would like to go.
@@ -123,6 +147,11 @@ module Pushable
 
       pushable.x     += dx
       pushable.depth += dd
+
+      # The drawing stays where it was and catches up over the next few
+      # frames. Clamped so a restart or a hot-reload jump cannot fling it.
+      pushable.lag_x     = (pushable.lag_x - dx).clamp(-Config::PUSH_LAG_MAX, Config::PUSH_LAG_MAX)
+      pushable.lag_depth = (pushable.lag_depth - dd).clamp(-Config::PUSH_LAG_MAX, Config::PUSH_LAG_MAX)
     end
 
     player.pushing = true unless pushed.empty?

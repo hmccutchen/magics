@@ -34,7 +34,12 @@ module Renderer
     end
 
     args.state.pushables.each do |pushable|
-      list << { entity: pushable, color: Config::COLOR_PUSHABLE }
+      list << {
+        entity: pushable,
+        color: Config::COLOR_PUSHABLE,
+        offset_x: pushable.lag_x,
+        offset_depth: pushable.lag_depth
+      }
     end
 
     if args.state.rock
@@ -79,8 +84,19 @@ module Renderer
     )
   end
 
+  # `offset_*` nudge only where the entity is DRAWN, never where it is. Depth
+  # sorting still uses the true depth, so a trailing object cannot swap places
+  # with something it is level with.
   def self.push_solid args, drawable
-    rect = World.screen_rect drawable[:entity], (drawable[:lift] || 0)
+    entity = drawable[:entity]
+
+    rect = World.place(
+      entity.x + (drawable[:offset_x] || 0),
+      entity.depth + (drawable[:offset_depth] || 0),
+      entity.w,
+      entity.h,
+      drawable[:lift] || 0
+    )
 
     args.outputs.sprites << Scene.solid(
       rect[:x], rect[:y], rect[:w], rect[:h], drawable[:color]
