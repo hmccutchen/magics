@@ -120,6 +120,31 @@ module Config
   # orbits the point forever. Creature asserts this on load.
   CREATURE_ARRIVE_DISTANCE = 5.0
 
+  # --- Making it move like an animal ---------------------------------------
+  #
+  # Left alone the creature walked its circuit at exactly one speed, turned
+  # instantly and never stopped, which reads as a patrol rather than an animal.
+  # These fix that between them: it stops to graze, and it eases in and out of
+  # walking instead of snapping to full pace.
+
+  # Frames spent standing at a spot before moving on. A range rather than one
+  # value, so the circuit does not fall into an audible rhythm.
+  CREATURE_GRAZE_TICKS_MIN = 90
+  CREATURE_GRAZE_TICKS_MAX = 260
+
+  # Added to its speed each frame while getting under way. At 0.06 an amble
+  # takes about half a second to reach full pace.
+  CREATURE_ACCELERATION = 0.06
+
+  # Distance from its target at which it starts easing off, so it arrives
+  # rather than stopping dead on the spot.
+  CREATURE_SLOWDOWN_DISTANCE = 45.0
+
+  # Floor on the eased speed. Without it the deceleration curve approaches zero
+  # and the creature creeps toward its target without ever arriving. Must stay
+  # below CREATURE_ARRIVE_DISTANCE; Creature asserts this on load.
+  CREATURE_MIN_SPEED = 0.45
+
   # How near a thrown object has to land before the creature notices it.
   # Beyond this it carries on grazing, which is what keeps the throw a tool for
   # moving an animal off a specific spot rather than a remote control.

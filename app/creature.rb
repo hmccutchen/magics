@@ -15,8 +15,13 @@
 # again or finds another way -- the story doc calls that out as the acceptable
 # worst case, not a dead end to design around.
 #
+# It stops to graze between spots and eases in and out of walking, rather than
+# crossing the stage at one fixed pace. Grazing is a pause inside :wandering
+# rather than a mode of its own, because nothing else in the file needs to
+# distinguish "walking the circuit" from "paused partway round it".
+#
 # Modes:
-#   :wandering    walking the circuit between grazing spots
+#   :wandering    walking the circuit between grazing spots, or stopped to eat
 #   :approaching  wandering over to something that landed nearby
 #   :fleeing      bolting away from something that landed nearby
 #   :settling     standing still afterwards, before returning to grazing
@@ -45,6 +50,15 @@ module Creature
       creature.target_x       = 0
       creature.target_depth   = 0
       creature.settling_until = 0
+
+      # Current pace, eased between 0 and whichever cruise speed the mode
+      # asks for. Stored rather than recomputed so acceleration carries across
+      # frames.
+      creature.speed = 0.0
+
+      # Tick at which it stops cropping grass and moves on. Zero means it sets
+      # off immediately, so the stage is not static on the first frame.
+      creature.grazing_until = 0
     end
   end
 
@@ -81,6 +95,9 @@ module Creature
     dx, dd = Throwables.direction effect, x, depth, creature.x, creature.depth,
                                   away_from_player(args, creature)
 
+    # Alarm is instant: a bolt snaps straight to full pace rather than easing
+    # up the way an amble does. Only the stopping is eased.
+    creature.speed        = Config::CREATURE_FLEE_SPEED
     creature.mode         = :fleeing
     creature.target_x     = (creature.x + (dx * Config::CREATURE_FLEE_DISTANCE))
                             .clamp(0, Config::SCREEN_W)
@@ -113,7 +130,9 @@ module Creature
 
   def self.wander args
     creature = args.state.creature
-    target   = Config::CREATURE_GRAZING_POINTS[creature.grazing_index]
+    return if grazing? args, creature
+
+    target = Config::CREATURE_GRAZING_POINTS[creature.grazing_index]
 
     result = move_toward args, creature, target[0], target[1], Config::CREATURE_SPEED
     return if result == :moving
@@ -123,6 +142,27 @@ module Creature
     # would otherwise look broken -- and wandering off is what an animal that
     # cannot get somewhere would do anyway.
     creature.grazing_index = (creature.grazing_index + 1) % Config::CREATURE_GRAZING_POINTS.length
+
+    start_grazing args, creature
+  end
+
+  # Standing still with its head down. An animal that walks a circuit without
+  # ever stopping reads as a patrol, which is precisely what this used to be.
+  #
+  # There is nothing to see yet beyond the box holding still; when there is
+  # art, this is the state that gets a grazing pose.
+  def self.grazing? args, creature
+    return false if creature.grazing_until <= args.state.tick_count
+
+    creature.speed = 0.0
+    true
+  end
+
+  def self.start_grazing args, creature
+    span = Config::CREATURE_GRAZE_TICKS_MAX - Config::CREATURE_GRAZE_TICKS_MIN
+
+    creature.grazing_until = args.state.tick_count + Config::CREATURE_GRAZE_TICKS_MIN + rand(span)
+    creature.speed         = 0.0
   end
 
   # Curiosity, at grazing pace -- an animal wandering over to see what fell,
@@ -152,6 +192,8 @@ module Creature
 
   def self.settle args
     creature = args.state.creature
+    creature.speed = 0.0
+
     return if creature.settling_until > args.state.tick_count
 
     # Rejoin the circuit at whichever spot is closest, rather than the one it
@@ -161,7 +203,7 @@ module Creature
     creature.mode          = :wandering
   end
 
-  # Steps the creature one frame toward (x, depth) at the given speed.
+  # Steps the creature one frame toward (x, depth), easing toward `cruise`.
   #
   # Returns :arrived, :moving, or :blocked. Blocked means a pushable is in the
   # way -- the creature is stopped by them but, unlike the player, cannot shift
@@ -176,23 +218,48 @@ module Creature
   # but it means "speed" is not one consistent real-world quantity. If the
   # movement ever needs to feel precisely even, normalize depth into
   # pixel-equivalents first.
-  def self.move_toward args, creature, target_x, target_depth, speed
+  def self.move_toward args, creature, target_x, target_depth, cruise
     dx = target_x - creature.x
     dd = target_depth - creature.depth
 
     distance = Math.sqrt((dx * dx) + (dd * dd))
 
-    return :arrived if distance <= Config::CREATURE_ARRIVE_DISTANCE
+    if distance <= Config::CREATURE_ARRIVE_DISTANCE
+      creature.speed = 0.0
+      return :arrived
+    end
 
-    next_x     = creature.x + ((dx / distance) * speed)
-    next_depth = World.clamp_depth(creature.depth + ((dd / distance) * speed))
+    creature.speed = eased_speed creature, distance, cruise
 
-    return :blocked if Pushable.blocks? args, next_x, next_depth, creature
+    next_x     = creature.x + ((dx / distance) * creature.speed)
+    next_depth = World.clamp_depth(creature.depth + ((dd / distance) * creature.speed))
+
+    if Pushable.blocks? args, next_x, next_depth, creature
+      creature.speed = 0.0
+      return :blocked
+    end
 
     creature.x     = next_x
     creature.depth = next_depth
 
     :moving
+  end
+
+  # This frame's pace: ramp up from rest, ease down over the last stretch.
+  #
+  # The ceiling falls off as the target nears so it arrives instead of
+  # stopping dead, and is floored so the curve cannot approach zero and leave
+  # it creeping forever. Acceleration is applied to whatever the current speed
+  # is, which is what carries a ramp across frames -- and what makes a bolt
+  # instant, since react sets speed to full before this ever runs.
+  def self.eased_speed creature, distance, cruise
+    ceiling = cruise
+    ceiling = cruise * (distance / Config::CREATURE_SLOWDOWN_DISTANCE) if distance < Config::CREATURE_SLOWDOWN_DISTANCE
+    ceiling = Config::CREATURE_MIN_SPEED if ceiling < Config::CREATURE_MIN_SPEED
+
+    stepped = creature.speed + Config::CREATURE_ACCELERATION
+
+    stepped > ceiling ? ceiling : stepped
   end
 
   def self.nearest_grazing_index creature
@@ -224,5 +291,14 @@ module Creature
     raise "CREATURE_ARRIVE_DISTANCE (#{Config::CREATURE_ARRIVE_DISTANCE}) must exceed the fastest creature speed (#{fastest})"
   end
 
+  # A floor above the arrive distance would step past the target every frame,
+  # which is the same orbiting bug from the other direction.
+  def self.assert_min_speed_arrives!
+    return if Config::CREATURE_MIN_SPEED < Config::CREATURE_ARRIVE_DISTANCE
+
+    raise "CREATURE_MIN_SPEED (#{Config::CREATURE_MIN_SPEED}) must stay below CREATURE_ARRIVE_DISTANCE (#{Config::CREATURE_ARRIVE_DISTANCE})"
+  end
+
   assert_arrive_distance_exceeds_speeds!
+  assert_min_speed_arrives!
 end
