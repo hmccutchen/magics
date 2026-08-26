@@ -1,7 +1,10 @@
 # Item
 #
-# The pickup that grants the player the ability to see the seam. Walking into
-# it on the ground plane picks it up.
+# The pickup from the retired adversarial loop. Walking into it on the ground
+# plane picks it up.
+#
+# It is still standing because it is the only thing that currently reveals a
+# seam -- see the temporary wiring in `update`.
 #
 # The item has no `collected` flag of its own -- it is visible exactly when the
 # player is not carrying it. Deriving visibility from one boolean means there is
@@ -25,6 +28,12 @@ module Item
     return unless World.overlap? args.state.player, args.state.item
 
     args.state.player.carrying = true
+
+    # Temporary wiring: revealing a seam is the pattern-completion loop's job,
+    # and that is a later step in this slice. Until it lands the pickup reveals
+    # every seam, so the fidelity system stays reachable by playing rather than
+    # only from the console. Deleted when pattern completion arrives.
+    Seams::SEAMS.each { |seam| Seams.reveal! args, seam[:region] }
   end
 
   def self.visible? args

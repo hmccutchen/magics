@@ -23,9 +23,12 @@ module Player
       player.fd    = Config::PLAYER_FD
 
       # The single source of truth for "does the player have the item's
-      # effect right now". The item's visibility and the seam's visibility are
-      # both DERIVED from this rather than tracked separately, so they cannot
-      # drift out of sync. Step 6 (enemy contact) will flip this back to false.
+      # effect right now". The item's visibility is DERIVED from this rather
+      # than tracked separately, so the two cannot drift out of sync. Enemy
+      # contact flips it back to false.
+      #
+      # Seam visibility no longer rides on this flag: revealing a seam is a
+      # one-way fact about the world, not a carried effect.
       player.carrying = false
 
       # Tick at which the recovery window after an enemy hit expires. Compared

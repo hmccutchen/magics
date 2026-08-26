@@ -140,9 +140,10 @@ module Enemy
     return if Player.recovering? args
     return unless World.overlap? player, args.state.enemy
 
-    # Losing the effect is a single assignment: the item's visibility and the
-    # seam's visibility are both derived from this one flag, so there is nothing
-    # else to reset. The item reappears and the seam vanishes on the same tick.
+    # Losing the effect is a single assignment: the item's visibility is
+    # derived from this one flag, so there is nothing else to reset -- the item
+    # reappears on the same tick. Seams already revealed stay revealed; a
+    # revealed seam is a fact about the world, not an effect being carried.
     player.carrying = false
     player.recovering_until = args.state.tick_count + Config::RECOVERY_TICKS
   end

@@ -6,11 +6,10 @@ require 'app/assets.rb'
 require 'app/scene.rb'
 require 'app/player.rb'
 require 'app/item.rb'
-require 'app/seam.rb'
+require 'app/seams.rb'
 require 'app/enemy.rb'
 require 'app/rock.rb'
 require 'app/renderer.rb'
-require 'app/completion.rb'
 
 module Main
   def tick args
@@ -22,21 +21,19 @@ module Main
     # the entities to nil so they rebuild from defaults; if that happened later
     # in the frame, the render pass would read nil entities and crash. Running
     # it here means the very next line recreates everything in the same tick.
-    Completion.check_restart args if args.state.mode == :complete
+    GameState.restart! args if args.inputs.keyboard.key_down.r
 
-    update args unless args.state.mode == :complete
+    update args
     render args
   end
 
-  # The whole simulation for one frame. Skipped entirely once the level is
-  # complete, which is what "the game stops" means here -- the enemy stops
-  # patrolling, the rock stops flying, and nothing can undo the win.
   def update args
     Player.update args
     Item.update args
 
-    # Before Enemy, so that being caught on the same tick as a pickup wins.
-    Seam.update args
+    # Before Enemy, so that a seam activated on the same tick as a pickup still
+    # resolves its region rather than being pre-empted by an enemy touch.
+    Seams.update args
     Enemy.update args
 
     # After Enemy, so a rock landing this tick redirects the enemy starting
@@ -47,7 +44,5 @@ module Main
   def render args
     Scene.render args
     Renderer.draw args
-
-    Completion.render args if args.state.mode == :complete
   end
 end

@@ -12,30 +12,25 @@
 # tick on an exception and nothing gets drawn.
 #
 # So: bump VERSION whenever an entity gains, loses, or renames a field. On the
-# next reload the entities we own are dropped and rebuilt from current defaults.
+# next reload the level restarts -- entities rebuilt from current defaults, and
+# progress cleared, since progress made under the old shape is not progress this
+# code knows how to honour.
 #
 # We clear only our own keys rather than calling $gtk.reset, so this stays a
 # narrow, predictable action rather than an engine-wide restart.
 module GameState
-  VERSION = 9
+  VERSION = 10
 
   # Every args.state key that holds an entity built from Config defaults.
-  OWNED_KEYS = [:player, :item, :seam, :enemy, :rock]
+  OWNED_KEYS = [:player, :item, :seams, :enemy, :rock]
 
   def self.ensure_current! args
-    # Whether the level is being played or has been completed. Deliberately
-    # separate from player.carrying: "has the item's effect" and "the level is
-    # over" are orthogonal, and collapsing them into one flag would mean the
-    # win state could be undone by an enemy touch.
-    args.state.mode ||= :playing
-
-    # Which regions have been resolved. A plain list of symbols, so unlike an
-    # entity it has no shape that can drift across a hot-reload.
-    args.state.resolved_regions ||= []
-
     return if args.state.schema_version == VERSION
 
-    clear_entities args
+    # A shape change means the world we are holding is not the world this code
+    # expects, so start the level over rather than rebuilding entities into
+    # progress they were never part of.
+    restart! args
     args.state.schema_version = VERSION
 
     log_reset args
@@ -43,17 +38,18 @@ module GameState
 
   # Puts the level back to its opening position. Entities are dropped rather
   # than individually reset, so they rebuild from Config defaults -- one code
-  # path for "new game" and "restart", with nothing to forget to zero out.
+  # path for "new game", "restart" and "schema changed", with nothing to forget
+  # to zero out.
   def self.restart! args
     clear_entities args
-    args.state.mode = :playing
     args.state.resolved_regions = []
+    args.state.revealed_seams   = []
   end
 
   def self.clear_entities args
     args.state.player = nil
     args.state.item   = nil
-    args.state.seam   = nil
+    args.state.seams  = nil
     args.state.enemy  = nil
     args.state.rock   = nil
   end

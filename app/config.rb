@@ -46,7 +46,7 @@ module Config
   # visible on screen, and unlike a numeric readout this shows SPATIAL
   # information that cannot be read any other way. Delete once regions are
   # placed.
-  SHOW_REGIONS = false
+  SHOW_REGIONS = true
 
   # Alpha used on the blink-off phase of the post-hit recovery window. The
   # gray-box used a flat colour swap; a sprite blinks by fading instead.
@@ -79,7 +79,7 @@ module Config
 
   # --- Pickup item ----------------------------------------------------------
   #
-  # The thing you walk into to reveal the seam. Placed toward the front-left of
+  # The thing you walk into to reveal the seams. Placed toward the front-left of
   # the stage so that reaching it requires moving on both axes.
   ITEM_X     = 300
   ITEM_DEPTH = 60.0
@@ -87,17 +87,6 @@ module Config
   ITEM_H     = 30
   ITEM_FW    = 34
   ITEM_FD    = 26
-
-  # --- Seam (goal) ----------------------------------------------------------
-  #
-  # Hidden until the item is carried. Placed at the back-right, diagonally
-  # opposite the item, so the two objectives are not on the same walk.
-  SEAM_X     = 1000
-  SEAM_DEPTH = 250.0
-  SEAM_W     = 26
-  SEAM_H     = 120
-  SEAM_FW    = 46
-  SEAM_FD    = 30
 
   # --- Enemy ----------------------------------------------------------------
 
@@ -160,19 +149,11 @@ module Config
   # How fast the player blinks while recovering (frames per on/off phase).
   RECOVERY_BLINK_RATE = 6
 
-  # --- Completion -----------------------------------------------------------
-
-  BANNER_H          = 150
-  BANNER_ALPHA      = 225
-  BANNER_TITLE_PX   = 52
-  BANNER_PROMPT_PX  = 22
-
   # --- Gray-box palette -----------------------------------------------------
   # Plain [r, g, b] arrays. Splatted into render hashes by Renderer.
 
   COLOR_BACKGROUND = [24, 26, 32]
   COLOR_SKY        = [38, 42, 54]
-  COLOR_GROUND     = [52, 56, 68]
   COLOR_GROUND_MYTH  = [52, 56, 68]
   COLOR_GROUND_TRUTH = [86, 96, 82]
   COLOR_GRID       = [70, 76, 92]
@@ -181,9 +162,6 @@ module Config
   COLOR_ITEM       = [226, 196, 92]
   COLOR_SEAM       = [138, 210, 196]
   COLOR_ENEMY      = [176, 92, 162]
-  COLOR_PLAYER_HIT = [120, 124, 140]
   COLOR_ROCK       = [206, 206, 214]
-  COLOR_BANNER_BG  = [16, 18, 24]
-  COLOR_BANNER     = [138, 210, 196]
-  COLOR_TEXT_DIM   = [130, 136, 150]
+  COLOR_REGION_RESOLVED = [138, 210, 196]
 end

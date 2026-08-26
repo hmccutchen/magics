@@ -8,7 +8,6 @@
 # wrong shape entirely. Geometry therefore belongs beside each file rather than
 # in Config, which keeps only values tuned by feel.
 module Assets
-  # Tier used when an asset has no entry for the requested tier.
   FALLBACK_TIER = :myth
 
   # Declare a tier only once its art exists. An undeclared tier falls back to
@@ -56,8 +55,11 @@ module Assets
     raise "Unknown sprite: #{name}" unless tiers
     return tiers[tier] if tiers[tier]
 
+    fallback = tiers[FALLBACK_TIER]
+    raise "Sprite #{name} declares no #{FALLBACK_TIER} tier to fall back to" unless fallback
+
     warn_missing name, tier
-    tiers[FALLBACK_TIER]
+    fallback
   end
 
   # Logged once per sprite/tier pair so an unauthored tier is visible in the
@@ -83,7 +85,6 @@ module Assets
     paths[index]
   end
 
-  # Fraction of the drawn height that is empty canvas beneath the feet.
   def self.foot_pad_ratio name, tier
     found = descriptor name, tier
     found[:foot_pad].to_f / found[:canvas_h]
