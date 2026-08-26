@@ -30,54 +30,34 @@ module Config
 
   # --- Player ---------------------------------------------------------------
 
-  # --- Player sprite geometry -----------------------------------------------
+  # On-screen height of the character FIGURE at full scale, in pixels. Each
+  # tier's drawn canvas size is derived from this and that tier's own
+  # measurements, so the traveller stays the same apparent size no matter which
+  # tier he is rendered at. Without this he would visibly resize when crossing
+  # a region boundary, which reads as a bug rather than a revelation.
   #
-  # The art is a 40x40 canvas that the figure does NOT fill. Measured from the
-  # PNG alpha channel, consistently across all 8 frames:
-  #
-  #   figure occupies roughly 19-21 x 25-26 px
-  #   7-8 fully transparent rows sit BELOW the feet
-  #
-  # Those empty rows matter: we plant an entity's rect bottom on ground_y, so
-  # drawing the raw canvas would leave the character hovering, and the hover
-  # would grow with scale. PLAYER_FOOT_PAD is subtracted at draw time instead.
-  # We do not trim the PNGs -- the 7-vs-8px variation IS the walk cycle's bob.
-  SPRITE_CANVAS   = 40    # source canvas, px
-  PLAYER_FIGURE_H = 26    # visible figure height within that canvas, px
-  PLAYER_FOOT_PAD = 7     # transparent rows below the feet, px
+  # Per-sprite measurements (canvas size, figure height, foot padding, frame
+  # count) live in app/assets.rb beside the files they describe. They were never
+  # tuning constants; this file keeps only what is tuned by feel.
+  CHARACTER_HEIGHT_PX = 90
 
-  # Drawn canvas size at SCALE_NEAR. Chosen so the FIGURE lands at ~90px, which
-  # is what every other constant in this file was tuned against:
-  #   90 * (40 / 26) = 138
-  PLAYER_W = 138
-  PLAYER_H = 138
-
-  # Fraction of the drawn height that is empty canvas beneath the feet.
-  PLAYER_FOOT_PAD_RATIO = PLAYER_FOOT_PAD.to_f / SPRITE_CANVAS
+  # Draws region outlines and names over the scene. Authoring tool, not a HUD:
+  # region bounds are written in (x, depth) units that correspond to nothing
+  # visible on screen, and unlike a numeric readout this shows SPATIAL
+  # information that cannot be read any other way. Delete once regions are
+  # placed.
+  SHOW_REGIONS = false
 
   # Alpha used on the blink-off phase of the post-hit recovery window. The
   # gray-box used a flat colour swap; a sprite blinks by fading instead.
   RECOVERY_BLINK_ALPHA = 90
 
-  # Frame files, referenced as sprites/player/frame_000.png .. frame_007.png.
-  PLAYER_SPRITE_DIR  = 'sprites/player'
-  PLAYER_FRAME_COUNT = 8
-
-  # Ground covered per animation frame. The full 8-frame cycle therefore spans
-  # 160 units, which at the walk speed of 4/tick is ~40 ticks, or about
-  # two-thirds of a second per stride -- roughly a walking pace.
-  WALK_FRAME_DISTANCE = 20.0
-
-  # Paths built once at load rather than per tick, both to avoid string
-  # allocation every frame and to keep the zero-padding in a single place.
-  # Padded manually instead of with rjust/format: this is mruby, and it has
-  # already surprised us once (required keyword arguments silently return nil),
-  # so plain string operations are the safer habit.
-  PLAYER_FRAMES = (0...PLAYER_FRAME_COUNT).map do |index|
-    padded = index.to_s
-    padded = "0#{padded}" while padded.length < 3
-    "#{PLAYER_SPRITE_DIR}/frame_#{padded}.png"
-  end
+  # Ground covered by ONE FULL walk cycle. Previously this was distance per
+  # frame, which broke as soon as tiers could have different frame counts: a
+  # 4-frame cycle would have completed in half the distance and animated at a
+  # visibly different speed. Expressing the whole cycle makes cadence identical
+  # across tiers by construction.
+  WALK_CYCLE_DISTANCE = 160.0
 
   # Footprint: the entity's box on the GROUND PLANE, used for collision.
   # FW is horizontal in pixels; FD is depth in world units. This is deliberately
@@ -193,6 +173,8 @@ module Config
   COLOR_BACKGROUND = [24, 26, 32]
   COLOR_SKY        = [38, 42, 54]
   COLOR_GROUND     = [52, 56, 68]
+  COLOR_GROUND_MYTH  = [52, 56, 68]
+  COLOR_GROUND_TRUTH = [86, 96, 82]
   COLOR_GRID       = [70, 76, 92]
   COLOR_HORIZON    = [92, 100, 120]
   COLOR_PLAYER     = [214, 122, 92]

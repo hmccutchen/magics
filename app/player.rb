@@ -19,8 +19,6 @@ module Player
     args.state.player ||= args.state.new_entity(:player) do |player|
       player.x     = Config::SCREEN_W / 2
       player.depth = Config::DEPTH_FAR / 2
-      player.w     = Config::PLAYER_W
-      player.h     = Config::PLAYER_H
       player.fw    = Config::PLAYER_FW
       player.fd    = Config::PLAYER_FD
 
@@ -75,19 +73,29 @@ module Player
     phase.even? ? Config::RECOVERY_BLINK_ALPHA : 255
   end
 
-  # Everything the renderer needs to draw the player this frame.
+  # Everything the renderer needs to draw the player this frame. Deliberately
+  # carries a sprite NAME and a normalised cycle position, never a file path
+  # and never a tier -- the renderer resolves both from where the player is
+  # standing. This is also what makes cadence independent of frame count: a
+  # 4-frame myth cycle and an 8-frame truth cycle cover the same ground.
   def self.drawable args
     {
       entity: args.state.player,
-      path: sprite_path(args),
+      sprite: :player_walk,
+      progress: cycle_progress(args),
       flip: args.state.player.heading_x < 0,
-      alpha: alpha(args),
-      foot_pad_ratio: Config::PLAYER_FOOT_PAD_RATIO
+      alpha: alpha(args)
     }
   end
 
-  def self.sprite_path args
-    Config::PLAYER_FRAMES[frame_index(args)]
+  # Position through the walk cycle, 0.0 to 1.0. Standing still reports 0.0
+  # rather than holding its last value, so an idle player returns to the
+  # neutral frame instead of freezing mid-stride.
+  def self.cycle_progress args
+    player = args.state.player
+    return 0.0 unless player.moving
+
+    player.walk_distance / Config::WALK_CYCLE_DISTANCE
   end
 
   def self.move args
@@ -144,16 +152,8 @@ module Player
     moved_depth = player.depth - start_depth
     moved       = Math.sqrt((moved_x * moved_x) + (moved_depth * moved_depth))
 
-    cycle = Config::WALK_FRAME_DISTANCE * Config::PLAYER_FRAME_COUNT
+    cycle = Config::WALK_CYCLE_DISTANCE
     player.walk_distance = (player.walk_distance + moved) % cycle
   end
 
-  # Which frame of the walk cycle to show. Standing still resets to frame 0
-  # rather than freezing mid-stride, since the art has no dedicated idle pose.
-  def self.frame_index args
-    player = args.state.player
-    return 0 unless player.moving
-
-    (player.walk_distance / Config::WALK_FRAME_DISTANCE).to_i % Config::PLAYER_FRAME_COUNT
-  end
 end

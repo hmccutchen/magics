@@ -45,15 +45,24 @@ module World
   # entity's depth. Used for the thrown rock's arc: it must LOOK airborne while
   # still sorting by where it is on the ground.
   def self.screen_rect entity, lift = 0
-    s = scale entity.depth
-    w = entity.w * s
-    h = entity.h * s
+    place entity.x, entity.depth, entity.w, entity.h, lift
+  end
+
+  # Converts a ground position and an UNSCALED size into the screen rectangle
+  # DragonRuby draws. Split out from screen_rect because a sprite's drawn size
+  # comes from its tier descriptor rather than from the entity, so the caller
+  # supplies w and h directly.
+  def self.place x, depth, w, h, lift = 0
+    s = scale depth
+
+    drawn_w = w * s
+    drawn_h = h * s
 
     {
-      x: entity.x - (w / 2.0),   # x is the entity's center, so back off half
-      y: ground_y(entity.depth) + lift, # y is the entity's feet, and DR rects anchor
-      w: w,                      # at bottom-left, so this needs no adjustment
-      h: h
+      x: x - (drawn_w / 2.0),   # x is the entity's center, so back off half
+      y: ground_y(depth) + lift, # y is the entity's feet, and DR rects anchor
+      w: drawn_w,                # at bottom-left, so this needs no adjustment
+      h: drawn_h
     }
   end
 

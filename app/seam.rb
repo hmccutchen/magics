@@ -22,16 +22,23 @@ module Seam
     check_reached args
   end
 
-  # Reaching a visible seam completes the level.
+  # Reaching a visible seam resolves the region the SEAM stands in -- not the
+  # region the player stands in, so the outcome does not depend on which side
+  # of a boundary the player approached from.
   #
   # No `visible?` guard is needed for correctness -- the seam is only visible
   # while carrying, and carrying is the same flag -- but checking it makes the
   # rule explicit rather than implied by a coincidence elsewhere.
+  #
+  # Temporary wiring: the real trigger is the pattern-completion loop, which is
+  # a later slice. This exercises the fidelity system end to end without having
+  # to build the puzzle mechanic first.
   def self.check_reached args
     return unless visible? args
     return unless World.overlap? args.state.player, args.state.seam
 
-    args.state.mode = :complete
+    seam = args.state.seam
+    Regions.resolve! args, Regions.at(seam.x, seam.depth)[:name]
   end
 
   def self.visible? args

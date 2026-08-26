@@ -1,6 +1,8 @@
 require 'app/config.rb'
 require 'app/game_state.rb'
 require 'app/world.rb'
+require 'app/regions.rb'
+require 'app/assets.rb'
 require 'app/scene.rb'
 require 'app/player.rb'
 require 'app/item.rb'
