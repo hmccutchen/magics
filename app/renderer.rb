@@ -40,32 +40,45 @@ module Renderer
   end
 
   def self.push args, drawable
-    rect = World.screen_rect drawable[:entity], (drawable[:lift] || 0)
-
-    if drawable[:path]
-      args.outputs.sprites << Scene.image(
-        rect[:x],
-        rect[:y] - foot_inset(rect, drawable),
-        rect[:w],
-        rect[:h],
-        drawable[:path],
-        drawable[:flip],
-        drawable[:alpha] || 255
-      )
+    if drawable[:sprite]
+      push_sprite args, drawable
     else
-      args.outputs.sprites << Scene.solid(
-        rect[:x], rect[:y], rect[:w], rect[:h], drawable[:color]
-      )
+      push_solid args, drawable
     end
   end
 
-  # How far to push a sprite DOWN so its feet, rather than its canvas bottom,
-  # land on the ground plane. Scales with the drawn size, so the character stays
-  # planted at every depth instead of drifting upward as it grows.
-  def self.foot_inset rect, drawable
-    ratio = drawable[:foot_pad_ratio]
-    return 0 unless ratio
+  # Resolves the drawable's sprite name to a file through the tier of the region
+  # its ground position falls in. Entities never learn their own tier: fidelity
+  # is a property of place, and place is the renderer's business.
+  def self.push_sprite args, drawable
+    entity = drawable[:entity]
+    name   = drawable[:sprite]
+    tier   = Regions.tier_at args, entity.x, entity.depth
 
-    rect[:h] * ratio
+    width, height = Assets.draw_size name, tier
+    rect = World.place entity.x, entity.depth, width, height, (drawable[:lift] || 0)
+
+    # Push the sprite DOWN so its feet, rather than its canvas bottom, land on
+    # the ground plane. Scales with the drawn size, so the character stays
+    # planted at every depth instead of drifting upward as it grows.
+    inset = rect[:h] * Assets.foot_pad_ratio(name, tier)
+
+    args.outputs.sprites << Scene.image(
+      rect[:x],
+      rect[:y] - inset,
+      rect[:w],
+      rect[:h],
+      Assets.frame_path(name, tier, drawable[:progress] || 0.0),
+      drawable[:flip],
+      drawable[:alpha] || 255
+    )
+  end
+
+  def self.push_solid args, drawable
+    rect = World.screen_rect drawable[:entity], (drawable[:lift] || 0)
+
+    args.outputs.sprites << Scene.solid(
+      rect[:x], rect[:y], rect[:w], rect[:h], drawable[:color]
+    )
   end
 end

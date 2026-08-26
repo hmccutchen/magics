@@ -17,7 +17,7 @@
 # We clear only our own keys rather than calling $gtk.reset, so this stays a
 # narrow, predictable action rather than an engine-wide restart.
 module GameState
-  VERSION = 8
+  VERSION = 9
 
   # Every args.state key that holds an entity built from Config defaults.
   OWNED_KEYS = [:player, :item, :seam, :enemy, :rock]
@@ -28,6 +28,10 @@ module GameState
     # over" are orthogonal, and collapsing them into one flag would mean the
     # win state could be undone by an enemy touch.
     args.state.mode ||= :playing
+
+    # Which regions have been resolved. A plain list of symbols, so unlike an
+    # entity it has no shape that can drift across a hot-reload.
+    args.state.resolved_regions ||= []
 
     return if args.state.schema_version == VERSION
 
@@ -43,6 +47,7 @@ module GameState
   def self.restart! args
     clear_entities args
     args.state.mode = :playing
+    args.state.resolved_regions = []
   end
 
   def self.clear_entities args
