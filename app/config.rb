@@ -66,8 +66,15 @@ module Config
   # Pixels per frame. There is no delta time, so these are literally the amount
   # added each tick. Depth is slower than x on purpose: the depth axis is
   # visually compressed, so matching speeds makes depth movement feel too fast.
-  PLAYER_SPEED_X     = 4.0
-  PLAYER_SPEED_DEPTH = 2.6
+  #
+  # The ratio between them is held at roughly 0.65 when retuning, so that
+  # changing the walking pace does not also change the shape of the stage.
+  #
+  # Nothing else needs adjusting alongside these: the walk cycle and the push
+  # bob are both driven by ground covered rather than by a timer, so cadence
+  # follows the new speed on its own.
+  PLAYER_SPEED_X     = 3.4
+  PLAYER_SPEED_DEPTH = 2.2
 
   # Multiplier applied to both axes when moving diagonally, so that walking
   # diagonally is not faster than walking straight. (1 / sqrt(2))
@@ -136,8 +143,8 @@ module Config
   # Raise these to demand tighter alignment, lower them to make pushing more
   # forgiving. Zero restores the old behaviour, where any contact at all
   # shifted the object.
-  PUSH_CONTACT_INSET_X     = 8
-  PUSH_CONTACT_INSET_DEPTH = 6
+  PUSH_CONTACT_INSET_X     = 13
+  PUSH_CONTACT_INSET_DEPTH = 10
 
   # The push pose is a single held frame, so without this he slides across the
   # ground with no sign of effort. A small rise and fall gives the movement a
