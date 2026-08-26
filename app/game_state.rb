@@ -19,10 +19,10 @@
 # We clear only our own keys rather than calling $gtk.reset, so this stays a
 # narrow, predictable action rather than an engine-wide restart.
 module GameState
-  VERSION = 10
+  VERSION = 11
 
   # Every args.state key that holds an entity built from Config defaults.
-  OWNED_KEYS = [:player, :item, :seams, :enemy, :rock]
+  OWNED_KEYS = [:player, :seams, :creature, :rock]
 
   def self.ensure_current! args
     return if args.state.schema_version == VERSION
@@ -47,11 +47,10 @@ module GameState
   end
 
   def self.clear_entities args
-    args.state.player = nil
-    args.state.item   = nil
-    args.state.seams  = nil
-    args.state.enemy  = nil
-    args.state.rock   = nil
+    args.state.player   = nil
+    args.state.seams    = nil
+    args.state.creature = nil
+    args.state.rock     = nil
   end
 
   def self.log_reset args

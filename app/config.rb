@@ -48,10 +48,6 @@ module Config
   # placed.
   SHOW_REGIONS = true
 
-  # Alpha used on the blink-off phase of the post-hit recovery window. The
-  # gray-box used a flat colour swap; a sprite blinks by fading instead.
-  RECOVERY_BLINK_ALPHA = 90
-
   # Ground covered by ONE FULL walk cycle. Previously this was distance per
   # frame, which broke as soon as tiers could have different frame counts: a
   # 4-frame cycle would have completed in half the distance and animated at a
@@ -77,45 +73,49 @@ module Config
   # diagonally is not faster than walking straight. (1 / sqrt(2))
   DIAGONAL_FACTOR = 0.7071
 
-  # --- Pickup item ----------------------------------------------------------
+  # --- Creature -------------------------------------------------------------
   #
-  # The thing you walk into to reveal the seams. Placed toward the front-left of
-  # the stage so that reaching it requires moving on both axes.
-  ITEM_X     = 300
-  ITEM_DEPTH = 60.0
-  ITEM_W     = 30
-  ITEM_H     = 30
-  ITEM_FW    = 34
-  ITEM_FD    = 26
+  # An animal, not an adversary. These are the numbers that describe where it
+  # goes and how fast; nothing here can hurt the player.
 
-  # --- Enemy ----------------------------------------------------------------
+  CREATURE_W  = 44
+  CREATURE_H  = 80
+  CREATURE_FW = 40
+  CREATURE_FD = 26
 
-  ENEMY_W  = 44
-  ENEMY_H  = 80
-  ENEMY_FW = 40
-  ENEMY_FD = 26
+  # Slower than the player on both axes, so the player can always walk around
+  # it rather than being held up by it.
+  CREATURE_SPEED = 2.0
 
-  # Slower than the player on both axes, so it can be outwalked but not ignored.
-  ENEMY_SPEED = 2.0
-
-  # The patrol circuit, as [x, depth] pairs walked in order and then repeated.
-  # Note it crosses the full depth range: the enemy passes both in front of and
-  # behind the player, which is what makes the draw-order sorting visible.
-  ENEMY_PATROL_POINTS = [
+  # The circuit of grazing spots, as [x, depth] pairs walked in order and then
+  # repeated. Note it crosses the full depth range: the creature passes both in
+  # front of and behind the player, which is what makes the draw-order sorting
+  # visible.
+  #
+  # Inherited from the retired patrol and still shaped like one -- a constant
+  # circuit of the whole stage reads as marching, not grazing. Retuning this
+  # into something that stays near one clearing belongs with the throw work,
+  # where how the creature moves is the actual subject.
+  CREATURE_GRAZING_POINTS = [
     [850,  40],   # front-right
     [850, 260],   # back-right
     [450, 260],   # back-left
     [450,  40]    # front-left
   ]
 
-  # How close (in mixed x/depth units) counts as reaching a waypoint. Must be
-  # larger than ENEMY_SPEED or the enemy oversteps and orbits the point forever.
-  ENEMY_ARRIVE_DISTANCE = 4.0
+  # How close (in mixed x/depth units) counts as reaching a spot. Must be
+  # larger than CREATURE_SPEED or the creature oversteps and orbits forever.
+  CREATURE_ARRIVE_DISTANCE = 4.0
+
+  # Frames the creature spends standing at a landing spot before resuming its
+  # circuit. Lives here rather than with the throw constants: it describes the
+  # creature's behaviour, not the object's flight.
+  CREATURE_LINGER_TICKS = 90
 
   # --- Throw / rock ---------------------------------------------------------
   #
-  # The player's only "action". It never harms the enemy -- it just makes a
-  # noise somewhere else, which the enemy walks over to investigate.
+  # The player's only "action". It never harms the creature -- it just makes a
+  # noise somewhere else, which the creature reacts to.
   ROCK_W  = 14
   ROCK_H  = 14
   ROCK_FW = 20
@@ -136,19 +136,6 @@ module Config
   # Frames the landed rock stays visible before disappearing.
   ROCK_LINGER_TICKS = 36
 
-  # Frames the enemy spends standing at the landing spot before resuming.
-  ENEMY_INVESTIGATE_TICKS = 90
-
-  # --- Recovery -------------------------------------------------------------
-  #
-  # Frames of immunity after the enemy catches you. 60 ticks == 1 second, since
-  # DragonRuby is a fixed 60fps. Without this, standing inside the enemy would
-  # strip the item again the instant you re-collected it.
-  RECOVERY_TICKS = 60
-
-  # How fast the player blinks while recovering (frames per on/off phase).
-  RECOVERY_BLINK_RATE = 6
-
   # --- Gray-box palette -----------------------------------------------------
   # Plain [r, g, b] arrays. Splatted into render hashes by Renderer.
 
@@ -158,10 +145,8 @@ module Config
   COLOR_GROUND_TRUTH = [86, 96, 82]
   COLOR_GRID       = [70, 76, 92]
   COLOR_HORIZON    = [92, 100, 120]
-  COLOR_PLAYER     = [214, 122, 92]
-  COLOR_ITEM       = [226, 196, 92]
   COLOR_SEAM       = [138, 210, 196]
-  COLOR_ENEMY      = [176, 92, 162]
+  COLOR_CREATURE   = [176, 92, 162]
   COLOR_ROCK       = [206, 206, 214]
   COLOR_REGION_RESOLVED = [138, 210, 196]
 end

@@ -9,8 +9,8 @@
 # Only part of that is built here.
 #
 # REVEALING belongs to the pattern-completion loop, which is a later step in
-# this slice. Until it lands, Item reveals every seam -- temporary wiring, so
-# the fidelity system stays reachable from gameplay in the meantime.
+# this slice. Until it lands every seam starts revealed -- temporary
+# scaffolding, so the fidelity system stays reachable in the meantime.
 #
 # ACTIVATION is still "walk into it", and is a PLACEHOLDER rather than a
 # decision: open question 4 in the story doc -- what activating a seam changes
@@ -20,9 +20,8 @@
 # second half would leave nothing to resolve a region at all.
 #
 # There is no `repaired` flag. One seam per region means a repaired seam IS a
-# resolved region, so Regions.resolved? already answers it. Same habit as the
-# item, whose visibility is derived from player.carrying rather than tracked a
-# second time and kept in sync by hand.
+# resolved region, so Regions.resolved? already answers it -- one fact, stored
+# once, rather than a second flag to keep in sync by hand.
 module Seams
   # Geometry lives here rather than in Config, matching Regions: Config keeps
   # only values tuned by feel, and these are authored positions that belong
@@ -52,6 +51,18 @@ module Seams
         entity.fd     = seam[:fd]
       end
     end
+
+    # Temporary: revealing a seam is the pattern-completion loop's job, and
+    # that has not been built yet. The pickup used to stand in for it; the
+    # pickup belonged to the retired adversarial loop and is gone, so until
+    # pattern completion lands every seam starts revealed. Delete this call
+    # and its method when it does.
+    reveal_all! args
+  end
+
+  # See the note in `defaults`. Temporary scaffolding, not a mechanic.
+  def self.reveal_all! args
+    SEAMS.each { |seam| reveal! args, seam[:region] }
   end
 
   def self.update args

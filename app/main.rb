@@ -5,9 +5,8 @@ require 'app/regions.rb'
 require 'app/assets.rb'
 require 'app/scene.rb'
 require 'app/player.rb'
-require 'app/item.rb'
 require 'app/seams.rb'
-require 'app/enemy.rb'
+require 'app/creature.rb'
 require 'app/rock.rb'
 require 'app/renderer.rb'
 
@@ -29,15 +28,11 @@ module Main
 
   def update args
     Player.update args
-    Item.update args
-
-    # Before Enemy, so that a seam activated on the same tick as a pickup still
-    # resolves its region rather than being pre-empted by an enemy touch.
     Seams.update args
-    Enemy.update args
+    Creature.update args
 
-    # After Enemy, so a rock landing this tick redirects the enemy starting
-    # next tick rather than being overwritten by its patrol step.
+    # After Creature, so an object landing this tick redirects the creature
+    # starting next tick rather than being overwritten by its wander step.
     Rock.update args
   end
 

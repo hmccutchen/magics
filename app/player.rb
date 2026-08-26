@@ -22,19 +22,6 @@ module Player
       player.fw    = Config::PLAYER_FW
       player.fd    = Config::PLAYER_FD
 
-      # The single source of truth for "does the player have the item's
-      # effect right now". The item's visibility is DERIVED from this rather
-      # than tracked separately, so the two cannot drift out of sync. Enemy
-      # contact flips it back to false.
-      #
-      # Seam visibility no longer rides on this flag: revealing a seam is a
-      # one-way fact about the world, not a carried effect.
-      player.carrying = false
-
-      # Tick at which the recovery window after an enemy hit expires. Compared
-      # against tick_count, so 0 means "not recovering".
-      player.recovering_until = 0
-
       # Last direction the player moved, used to aim the throw. Persists while
       # standing still, so you can stop, turn, and throw. Starts facing right.
       player.facing_x     = 1.0
@@ -61,21 +48,6 @@ module Player
     move args
   end
 
-  # True while the player is immune following an enemy hit.
-  def self.recovering? args
-    args.state.player.recovering_until > args.state.tick_count
-  end
-
-  # Fades in and out while recovering, so the immunity window stays legible
-  # without a HUD element. The gray-box swapped colours; a sprite blinks by
-  # dropping alpha instead.
-  def self.alpha args
-    return 255 unless recovering? args
-
-    phase = (args.state.tick_count / Config::RECOVERY_BLINK_RATE).to_i
-    phase.even? ? Config::RECOVERY_BLINK_ALPHA : 255
-  end
-
   # Everything the renderer needs to draw the player this frame. Deliberately
   # carries a sprite NAME and a normalised cycle position, never a file path
   # and never a tier -- the renderer resolves both from where the player is
@@ -86,8 +58,7 @@ module Player
       entity: args.state.player,
       sprite: :player_walk,
       progress: cycle_progress(args),
-      flip: args.state.player.heading_x < 0,
-      alpha: alpha(args)
+      flip: args.state.player.heading_x < 0
     }
   end
 
@@ -147,7 +118,7 @@ module Player
   # accumulator stays bounded over a long session instead of drifting into
   # float imprecision.
   #
-  # Same mixed-unit caveat as the enemy's patrol: x is pixels and depth is world
+  # Same mixed-unit caveat as the creature's circuit: x is pixels and depth is world
   # units, so this magnitude is not one consistent real-world quantity. It is
   # driving an animation cadence, not physics, so eyeballed is fine.
   def self.accumulate_distance player, start_x, start_depth

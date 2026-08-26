@@ -24,13 +24,11 @@ module Renderer
   def self.entities args
     list = [
       Player.drawable(args),
-      { entity: args.state.enemy, color: Config::COLOR_ENEMY }
+      { entity: args.state.creature, color: Config::COLOR_CREATURE }
     ]
 
     # Each module owns the rule for whether it is on screen; the renderer just
     # asks. Keeps game rules out of the drawing code.
-    list << { entity: args.state.item, color: Config::COLOR_ITEM } if Item.visible? args
-
     Seams.visible(args).each do |seam|
       list << { entity: seam, color: Config::COLOR_SEAM }
     end
