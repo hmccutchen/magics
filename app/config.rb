@@ -126,6 +126,19 @@ module Config
   # object copies the player's slowed delta, so it slows down too.
   PUSH_SPEED_FACTOR = 0.65
 
+  # How far INSIDE a pushable's footprint the player has to reach before it
+  # will shift. Brushing the corner of a thing should not move it; you have to
+  # square up to it first.
+  #
+  # Separate per axis because they are different units -- x is pixels, depth is
+  # world units -- the same reason THROW_DISTANCE is split in two.
+  #
+  # Raise these to demand tighter alignment, lower them to make pushing more
+  # forgiving. Zero restores the old behaviour, where any contact at all
+  # shifted the object.
+  PUSH_CONTACT_INSET_X     = 8
+  PUSH_CONTACT_INSET_DEPTH = 6
+
   # The push pose is a single held frame, so without this he slides across the
   # ground with no sign of effort. A small rise and fall gives the movement a
   # footfall to read against.
