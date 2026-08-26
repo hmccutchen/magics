@@ -43,6 +43,11 @@ module Pushable
     defaults args
 
     player = args.state.player
+
+    # Recomputed every frame rather than latched, so the pose drops the moment
+    # contact or movement stops. Player owns the flag because Player.drawable
+    # is what reads it.
+    player.pushing = false
     return unless player.moving
 
     args.state.pushables.each do |pushable|
@@ -52,6 +57,8 @@ module Pushable
 
   def self.slide args, player, pushable
     return unless World.overlap? player, pushable
+
+    player.pushing = true
 
     pushable.x = World.clamp_x(
       pushable.x + (player.moved_x * Config::PUSH_FACTOR),

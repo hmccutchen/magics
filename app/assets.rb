@@ -13,6 +13,13 @@ module Assets
   # Declare a tier only once its art exists. An undeclared tier falls back to
   # myth, which is what lets regions and puzzles be built before the truth art
   # is authored -- a resolved region simply does not change appearance yet.
+  # A descriptor names its files one of two ways:
+  #
+  #   frames: N  -- a numbered cycle, frame_000.png .. frame_(N-1).png
+  #   files: []  -- an explicit list, for art that is not a numbered cycle
+  #
+  # The push poses need the second: they are single held frames named by
+  # compass direction, not an animation.
   ASSETS = {
     player_walk: {
       myth: {
@@ -25,6 +32,35 @@ module Assets
       }
     }
   }
+
+  # The push poses share a canvas, figure height and foot padding, so they are
+  # declared from one shape rather than seven copies of the same four numbers.
+  #
+  # figure_h is 26 for all of them even though south-east measures 25 -- the
+  # walk frames vary the same way and use a single value, because a per-file
+  # figure height would resize the character by a pixel as he turned.
+  PUSH_POSE_FILES = {
+    player_push_north:      'north.png',
+    player_push_north_east: 'north-east.png',
+    player_push_east:       'east.png',
+    player_push_south_east: 'south-east.png',
+    player_push_south:      'south.png',
+    player_push_west:       'west.png',
+    player_push_north_west: 'north-west.png'
+  }
+
+  PUSH_POSE_FILES.each do |name, file|
+    ASSETS[name] = {
+      myth: {
+        dir: 'sprites/player/myth',
+        files: [file],
+        canvas_w: 32,
+        canvas_h: 32,
+        figure_h: 26,
+        foot_pad: 3
+      }
+    }
+  end
 
   # Zero-padded by hand rather than with format/rjust: this runs in mruby, which
   # has already silently returned nil from a method MRI accepted. Stdlib
@@ -44,7 +80,13 @@ module Assets
     TABLE[name] = {}
 
     tiers.each do |tier, descriptor|
-      TABLE[name][tier] = descriptor.merge({ paths: frame_paths(descriptor[:dir], descriptor[:frames]) })
+      paths = if descriptor[:files]
+                descriptor[:files].map { |file| "#{descriptor[:dir]}/#{file}" }
+              else
+                frame_paths descriptor[:dir], descriptor[:frames]
+              end
+
+      TABLE[name][tier] = descriptor.merge({ paths: paths })
     end
   end
 

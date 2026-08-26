@@ -47,6 +47,9 @@ module Player
       # every frame, so it is never stale.
       player.moved_x     = 0.0
       player.moved_depth = 0.0
+
+      # Set by Pushable each frame; drives which sprite set is drawn.
+      player.pushing = false
     end
   end
 
@@ -55,17 +58,68 @@ module Player
     move args
   end
 
+  # Which push pose to draw, keyed by the direction being walked:
+  # PUSH_POSES[depth input][horizontal input] -> [sprite name, mirrored?].
+  #
+  # Integer keys rather than an [x, depth] array key, and a lookup table rather
+  # than a built-up string, because this runs every frame and the codebase
+  # already avoids allocating at 60fps.
+  #
+  # +1 depth is INTO the scene, matching args.inputs.up_down.
+  #
+  # There is no south-west art yet, so it mirrors south-east -- the same trick
+  # the walk cycle uses to serve both horizontal directions from one set. Add
+  # a south-west.png, declare it in Assets, and this one entry replaces it.
+  PUSH_POSES = {
+     1 => {
+      -1 => [:player_push_north_west, false],
+       0 => [:player_push_north,      false],
+       1 => [:player_push_north_east, false]
+    },
+     0 => {
+      -1 => [:player_push_west,  false],
+       0 => [:player_push_south, false],
+       1 => [:player_push_east,  false]
+    },
+    -1 => {
+      -1 => [:player_push_south_east, true],
+       0 => [:player_push_south,      false],
+       1 => [:player_push_south_east, false]
+    }
+  }
+
   # Everything the renderer needs to draw the player this frame. Deliberately
   # carries a sprite NAME and a normalised cycle position, never a file path
   # and never a tier -- the renderer resolves both from where the player is
   # standing. This is also what makes cadence independent of frame count: a
   # 4-frame myth cycle and an 8-frame truth cycle cover the same ground.
   def self.drawable args
+    return push_drawable args if args.state.player.pushing
+
     {
       entity: args.state.player,
       sprite: :player_walk,
       progress: cycle_progress(args),
       flip: args.state.player.heading_x < 0
+    }
+  end
+
+  # The push pose is a single held frame, not a cycle -- he braces and stays
+  # braced while the object slides -- so no progress is passed.
+  #
+  # Direction comes from facing, which is set from this frame's input. Falls
+  # back to the south pose rather than raising if facing is ever a value the
+  # table has no row for.
+  def self.push_drawable args
+    player = args.state.player
+
+    row  = PUSH_POSES[player.facing_depth] || PUSH_POSES[0]
+    pose = row[player.facing_x] || [:player_push_south, false]
+
+    {
+      entity: player,
+      sprite: pose[0],
+      flip: pose[1]
     }
   end
 

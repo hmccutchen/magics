@@ -33,10 +33,21 @@ Assets::TABLE.each do |name, tiers|
   end
 end
 
-puts 'frame count matches declared frames'
+puts 'path count matches whichever way the descriptor names its files'
 Assets::TABLE.each do |name, tiers|
   tiers.each do |tier, descriptor|
-    check "#{name}/#{tier} path count", descriptor[:paths].length, descriptor[:frames]
+    expected = descriptor[:files] ? descriptor[:files].length : descriptor[:frames]
+    check "#{name}/#{tier} path count", descriptor[:paths].length, expected
+  end
+end
+
+# A descriptor that declares neither, or both, would silently produce the wrong
+# path list rather than failing, so it is rejected outright.
+puts 'every descriptor names its files exactly one way'
+Assets::TABLE.each do |name, tiers|
+  tiers.each do |tier, descriptor|
+    named = [descriptor[:frames], descriptor[:files]].compact.length
+    check "#{name}/#{tier} naming", named, 1
   end
 end
 
@@ -56,6 +67,16 @@ check_close 'foot pad ratio', Assets.foot_pad_ratio(:player_walk, :myth), 7.0 / 
 w, h = Assets.draw_size :player_walk, :myth
 check_close 'draw width',  w, 138.46
 check_close 'draw height', h, 138.46
+
+puts 'push poses are single held frames'
+Assets::PUSH_POSE_FILES.each_key do |name|
+  check "#{name} path count", Assets.descriptor(name, :myth)[:paths].length, 1
+  check "#{name} progress is ignored",
+        Assets.frame_path(name, :myth, 0.0) == Assets.frame_path(name, :myth, 0.99),
+        true
+end
+
+check_close 'push foot pad ratio', Assets.foot_pad_ratio(:player_push_east, :myth), 3.0 / 32
 
 puts 'figure height is identical across every declared tier'
 Assets::TABLE.each do |name, tiers|
