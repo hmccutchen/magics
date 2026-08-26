@@ -79,12 +79,6 @@ module Pushable
         # only -- see settle_lag. Nothing in the simulation reads these.
         entity.lag_x     = 0.0
         entity.lag_depth = 0.0
-
-        # Where a thrown object has sent it, and whether it is still on its
-        # way there. See react/drift.
-        entity.drifting     = false
-        entity.target_x     = 0.0
-        entity.target_depth = 0.0
       end
     end
   end
@@ -94,87 +88,9 @@ module Pushable
   def self.update args
     defaults args
 
-    args.state.pushables.each_with_index do |pushable, index|
-      settle_lag pushable
-      drift args, pushable, index
-    end
-  end
-
-  # --- Reacting to a thrown object -----------------------------------------
-  #
-  # A pushable that moves itself is a design choice rather than physics: it
-  # makes these objects read as faintly alive, and it gives the throw a use
-  # beyond the creature. Which way it goes depends on what was thrown.
-  #
-  # It is much slower than a push, and the distance is short. Luring something
-  # into place should be the imprecise, patient option next to walking over and
-  # shoving it exactly where you want it -- otherwise the throw would simply be
-  # a better push.
-
-  def self.react args, x, depth, effect
-    defaults args
-
     args.state.pushables.each do |pushable|
-      next unless near? pushable, x, depth
-
-      travel = effect == :attract ? Config::PUSHABLE_ATTRACT_DISTANCE : Config::PUSHABLE_REPEL_DISTANCE
-
-      # A landing dead-centre on an object leaves no direction; nudging it
-      # along x is arbitrary but never happens twice in the same place, and
-      # the alternative is silently ignoring the throw.
-      dx, dd = Throwables.direction effect, x, depth, pushable.x, pushable.depth, [1.0, 0.0]
-
-      pushable.drifting     = true
-      pushable.target_x     = (pushable.x + (dx * travel)).clamp(0, Config::SCREEN_W)
-      pushable.target_depth = World.clamp_depth(pushable.depth + (dd * travel))
+      settle_lag pushable
     end
-  end
-
-  def self.near? pushable, x, depth
-    dx = pushable.x - x
-    dd = pushable.depth - depth
-
-    Math.sqrt((dx * dx) + (dd * dd)) <= Config::PUSHABLE_REACT_RADIUS
-  end
-
-  # One frame of self-propelled movement. Stops on arrival, and equally on
-  # being blocked -- an object that cannot get where it was called to simply
-  # stays, the same way a boxed-in creature does.
-  def self.drift args, pushable, index
-    return unless pushable.drifting
-
-    dx = pushable.target_x - pushable.x
-    dd = pushable.target_depth - pushable.depth
-
-    distance = Math.sqrt((dx * dx) + (dd * dd))
-
-    if distance <= Config::PUSHABLE_ARRIVE_DISTANCE
-      pushable.drifting = false
-      return
-    end
-
-    step_x = (dx / distance) * Config::PUSHABLE_DRIFT_SPEED
-    step_d = (dd / distance) * Config::PUSHABLE_DRIFT_SPEED
-
-    next_x     = pushable.x + step_x
-    next_depth = pushable.depth + step_d
-
-    unless can_drift? args, pushable, index, next_x, next_depth
-      pushable.drifting = false
-      return
-    end
-
-    pushable.x     = next_x
-    pushable.depth = next_depth
-  end
-
-  # Drifting answers to everything a push does, plus the player -- an object
-  # moving under its own steam has no business shoving him around.
-  def self.can_drift? args, pushable, index, x, depth
-    return false unless within_stage? pushable, x, depth
-    return false if obstructed? args, pushable, index, x, depth, []
-
-    !World.would_overlap?(x, depth, pushable.fw, pushable.fd, args.state.player)
   end
 
   # Eases the drawn position back toward the true one.
@@ -231,9 +147,6 @@ module Pushable
 
       pushable.x     += dx
       pushable.depth += dd
-
-      # Being shoved overrides being called: the player has hold of it now.
-      pushable.drifting = false
 
       # The drawing stays where it was and catches up over the next few
       # frames. Clamped so a restart or a hot-reload jump cannot fling it.
@@ -321,14 +234,6 @@ module Pushable
     false
   end
 
-  # An arrive distance at or below the step size means a drifting object
-  # oversteps its target every frame and circles it forever.
-  def self.assert_arrive_distance_exceeds_drift!
-    return if Config::PUSHABLE_ARRIVE_DISTANCE > Config::PUSHABLE_DRIFT_SPEED
-
-    raise "PUSHABLE_ARRIVE_DISTANCE (#{Config::PUSHABLE_ARRIVE_DISTANCE}) must exceed PUSHABLE_DRIFT_SPEED (#{Config::PUSHABLE_DRIFT_SPEED})"
-  end
-
   # An inset at or past the half-width would leave a push zone of zero or
   # negative size, and the object would silently become unpushable. Refuse to
   # start instead -- the same stance Regions takes on overlapping bounds.
@@ -346,5 +251,4 @@ module Pushable
   end
 
   assert_push_zones_exist!
-  assert_arrive_distance_exceeds_drift!
 end

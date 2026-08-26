@@ -139,7 +139,6 @@ module Rock
     effect = Throwables.at(rock.kind_index)[:effect]
 
     Creature.react args, rock.x, rock.depth, effect
-    Pushable.react args, rock.x, rock.depth, effect
   end
 
   def self.advance_linger args

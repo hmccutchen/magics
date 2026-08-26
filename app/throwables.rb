@@ -12,9 +12,9 @@
 # Config with the rest of the gray-box palette, so replacing these with real
 # art touches rendering and nothing else.
 #
-# Both the creature and pushable objects respond. A pushable drifting toward a
-# noise is a deliberate choice, not physics: it makes these objects read as
-# faintly alive, which is the direction the world is already going.
+# The creature is what responds. Inert objects do not: they are moved by being
+# pushed, which is a separate verb, and giving the throw a way to move them too
+# would leave pushing with nothing of its own to do.
 module Throwables
   KINDS = [
     { name: :lure,  effect: :attract },
