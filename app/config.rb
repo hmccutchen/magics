@@ -261,6 +261,19 @@ module Config
   # Frames the landed rock stays visible before disappearing.
   ROCK_LINGER_TICKS = 36
 
+  # --- The pattern ----------------------------------------------------------
+  #
+  # How close an object has to be to count as seated in a socket. Split per
+  # axis because x is pixels and depth is world units -- a single distance
+  # across the two would be tighter on one axis than the other without ever
+  # saying so.
+  #
+  # These also set the drawn size of the socket, so the mark on the ground is
+  # exactly the area that counts. There is no hidden margin: what you see is
+  # what has to be filled.
+  SOCKET_TOLERANCE_X     = 26
+  SOCKET_TOLERANCE_DEPTH = 18.0
+
   # --- Gray-box palette -----------------------------------------------------
   # Plain [r, g, b] arrays. Splatted into render hashes by Renderer.
 
@@ -280,6 +293,15 @@ module Config
     [232, 206, 118],   # lure  -- warm, draws things in
     [104, 176, 214]    # scare -- cold, drives things off
   ]
-  COLOR_PUSHABLE   = [150, 138, 108]
+  # One per Pushable::PUSHABLES entry, in the same order. The second echoes
+  # COLOR_SOCKET, because the pattern the player has to notice is that the two
+  # belong together -- with real art that kinship is the art's job.
+  COLOR_PUSHABLE = [
+    [150, 138, 108],
+    [116, 150, 138]
+  ]
+
+  COLOR_SOCKET        = [104, 134, 124]
+  COLOR_SOCKET_FILLED = [138, 210, 196]
   COLOR_REGION_RESOLVED = [138, 210, 196]
 end

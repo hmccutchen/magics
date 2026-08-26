@@ -8,9 +8,8 @@
 #
 # Only part of that is built here.
 #
-# REVEALING belongs to the pattern-completion loop, which is a later step in
-# this slice. Until it lands every seam starts revealed -- temporary
-# scaffolding, so the fidelity system stays reachable in the meantime.
+# REVEALING is Pattern's job: a seam appears when the pattern in its region is
+# completed.
 #
 # ACTIVATION is still "walk into it", and is a PLACEHOLDER rather than a
 # decision: open question 4 in the story doc -- what activating a seam changes
@@ -51,18 +50,6 @@ module Seams
         entity.fd     = seam[:fd]
       end
     end
-
-    # Temporary: revealing a seam is the pattern-completion loop's job, and
-    # that has not been built yet. The pickup used to stand in for it; the
-    # pickup belonged to the retired adversarial loop and is gone, so until
-    # pattern completion lands every seam starts revealed. Delete this call
-    # and its method when it does.
-    reveal_all! args
-  end
-
-  # See the note in `defaults`. Temporary scaffolding, not a mechanic.
-  def self.reveal_all! args
-    SEAMS.each { |seam| reveal! args, seam[:region] }
   end
 
   def self.update args

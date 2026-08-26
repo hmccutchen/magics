@@ -33,10 +33,10 @@ module Renderer
       list << { entity: seam, color: Config::COLOR_SEAM }
     end
 
-    args.state.pushables.each do |pushable|
+    args.state.pushables.each_with_index do |pushable, index|
       list << {
         entity: pushable,
-        color: Config::COLOR_PUSHABLE,
+        color: Config::COLOR_PUSHABLE[index],
         offset_x: pushable.lag_x,
         offset_depth: pushable.lag_depth
       }

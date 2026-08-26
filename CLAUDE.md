@@ -79,10 +79,17 @@ These matter more here than they would on a settled codebase, precisely
   pickup item. `creature.rb` replaces `enemy.rb`.
 - Manipulation verbs are in: pushing (with weight, alignment, sliding and
   solid blocking) and throw-to-startle.
-- Still to come: the two-step pattern completion that reveals a seam. Until
-  it exists, `Seams.defaults` reveals every seam as scaffolding, and walking
-  into a seam is a PLACEHOLDER for activation -- story-doc open question 4
-  (what activating a seam changes on screen) is unresolved.
+- The two-step pattern is in (`pattern.rb`): a socket starts hidden under an
+  object that does not fit it; shifting that off reveals the mark, and pushing
+  the matching object in reveals the region's seam. The ordering is enforced
+  by objects blocking each other, not by a state machine.
+- Walking into a revealed seam is still a PLACEHOLDER for activation --
+  story-doc open question 4 (what activating a seam changes on screen) is
+  unresolved, so only the rendering half of it exists: the region flips to
+  truth and its ground and contents change tier.
+- Still to come: the owl, ambient life, world structure and traversal, the
+  ending. Also unresolved: story-doc question 5, how many pattern moments the
+  world holds and whether they share a rhythm.
 
 ## Git
 

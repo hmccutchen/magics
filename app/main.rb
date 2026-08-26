@@ -9,6 +9,7 @@ require 'app/seams.rb'
 require 'app/throwables.rb'
 require 'app/creature.rb'
 require 'app/pushable.rb'
+require 'app/pattern.rb'
 require 'app/rock.rb'
 require 'app/renderer.rb'
 
@@ -34,6 +35,11 @@ module Main
     Pushable.update args
 
     Player.update args
+
+    # After Player, so a socket filled by this frame's push is recognised now
+    # rather than a frame later.
+    Pattern.update args
+
     Seams.update args
     Creature.update args
 
@@ -44,6 +50,11 @@ module Main
 
   def render args
     Scene.render args
+
+    # Between the two: sockets are markings on the floor, so they sit above the
+    # backdrop and below everything that stands on it.
+    Pattern.render args
+
     Renderer.draw args
   end
 end
