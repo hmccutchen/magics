@@ -29,22 +29,14 @@ module Throwables
     at(args.state.throwable_index || 0)
   end
 
-  # Unit vector pointing from the landing spot toward the thing reacting, and
-  # the distance it should travel. Attracting flips the direction, so both
-  # effects share one piece of arithmetic rather than two near-copies.
-  #
-  # A landing exactly on top of something leaves no direction, so the caller
-  # supplies a fallback rather than this inventing one.
-  def self.direction effect, from_x, from_depth, to_x, to_depth, fallback
-    dx = to_x - from_x
-    dd = to_depth - from_depth
+  # Colour is how the two are told apart, so a kind without one is a kind the
+  # player cannot identify. Cheaper to refuse at load than to find out when the
+  # renderer indexes past the end and blanks the screen mid-frame.
+  def self.assert_every_kind_has_a_colour!
+    return if Config::COLOR_THROWABLE.length == KINDS.length
 
-    distance = Math.sqrt((dx * dx) + (dd * dd))
-    dx, dd   = fallback if distance <= 0.001
-    distance = 1.0 if distance <= 0.001
-
-    sign = effect == :attract ? -1.0 : 1.0
-
-    [(dx / distance) * sign, (dd / distance) * sign]
+    raise "COLOR_THROWABLE has #{Config::COLOR_THROWABLE.length} entries for #{KINDS.length} throwable kinds"
   end
+
+  assert_every_kind_has_a_colour!
 end

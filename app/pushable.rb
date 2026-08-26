@@ -140,7 +140,13 @@ module Pushable
     # Overlapping the body without reaching the push zone is deliberately NOT
     # a refusal -- that is walking past the thing. Only an object you have
     # actually got hold of, and which has nowhere to go, stops you.
-    return false unless pushed.all? { |index| can_move? args, index, dx, dd, pushed }
+    unless pushed.all? { |index| can_move? args, index, dx, dd, pushed }
+      # Straining against something that will not budge is still pushing. The
+      # braced pose and the slowdown both belong here; the only difference from
+      # a successful push is that nothing moves.
+      player.pushing = true
+      return false
+    end
 
     pushed.each do |index|
       pushable = args.state.pushables[index]
@@ -234,6 +240,15 @@ module Pushable
     false
   end
 
+  # A pushable without a colour is one the renderer cannot draw: it would index
+  # past the end of the palette and raise inside the render pass, blanking the
+  # screen mid-frame rather than failing clearly at startup.
+  def self.assert_every_pushable_has_a_colour!
+    return if Config::COLOR_PUSHABLE.length == PUSHABLES.length
+
+    raise "COLOR_PUSHABLE has #{Config::COLOR_PUSHABLE.length} entries for #{PUSHABLES.length} pushables"
+  end
+
   # An inset at or past the half-width would leave a push zone of zero or
   # negative size, and the object would silently become unpushable. Refuse to
   # start instead -- the same stance Regions takes on overlapping bounds.
@@ -251,4 +266,5 @@ module Pushable
   end
 
   assert_push_zones_exist!
+  assert_every_pushable_has_a_colour!
 end

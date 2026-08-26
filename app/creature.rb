@@ -92,18 +92,37 @@ module Creature
       return
     end
 
-    dx, dd = Throwables.direction effect, x, depth, creature.x, creature.depth,
-                                  away_from_player(args, creature)
+    dx, dd = away_unit creature, x, depth, away_from_player(args, creature)
 
     # Alarm is instant: a bolt snaps straight to full pace rather than easing
     # up the way an amble does. Only the stopping is eased.
     creature.speed        = Config::CREATURE_FLEE_SPEED
     creature.mode         = :fleeing
-    creature.target_x     = (creature.x + (dx * Config::CREATURE_FLEE_DISTANCE))
-                            .clamp(0, Config::SCREEN_W)
     creature.target_depth = World.clamp_depth(
       creature.depth + (dd * Config::CREATURE_FLEE_DISTANCE)
     )
+
+    # Clamped by half-width at the destination depth, the same as every other
+    # entity. Clamping to the bare screen edge would centre the creature on it
+    # and leave half its body drawn off-stage.
+    creature.target_x = World.clamp_x(
+      creature.x + (dx * Config::CREATURE_FLEE_DISTANCE),
+      creature.fw,
+      creature.target_depth
+    )
+  end
+
+  # Unit vector pointing from a spot toward the creature -- the direction away
+  # from whatever just landed. `fallback` covers a landing exactly on top of
+  # it, which leaves no direction to derive.
+  def self.away_unit creature, x, depth, fallback
+    dx = creature.x - x
+    dd = creature.depth - depth
+
+    distance = Math.sqrt((dx * dx) + (dd * dd))
+    return fallback if distance <= 0.001
+
+    [dx / distance, dd / distance]
   end
 
   def self.near? creature, x, depth
@@ -201,6 +220,12 @@ module Creature
     # around and walk all the way back across the stage, which reads as broken.
     creature.grazing_index = nearest_grazing_index creature
     creature.mode          = :wandering
+
+    # Whatever graze was under way when the throw landed is over -- being
+    # startled ends the meal. Without this the old timer resumes on the far
+    # side of the bolt and the creature stands frozen where it stopped,
+    # instead of drifting back to its circuit.
+    creature.grazing_until = 0
   end
 
   # Steps the creature one frame toward (x, depth), easing toward `cruise`.

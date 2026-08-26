@@ -46,7 +46,7 @@ module Config
   # visible on screen, and unlike a numeric readout this shows SPATIAL
   # information that cannot be read any other way. Delete once regions are
   # placed.
-  SHOW_REGIONS = true
+  SHOW_REGIONS = false
 
   # Ground covered by ONE FULL walk cycle. Previously this was distance per
   # frame, which broke as soon as tiers could have different frame counts: a
@@ -161,13 +161,6 @@ module Config
 
   # --- Pushing --------------------------------------------------------------
   #
-  # A pushable is displaced by the player's own movement for the frame, scaled
-  # by this. 1.0 means it travels exactly as fast as you walk, which is the
-  # only value at which it can neither outrun you nor be walked through.
-  # Lower values read as "heavy" but let the player overlap the object, since
-  # nothing blocks the player yet.
-  PUSH_FACTOR = 1.0
-
   # Multiplies the player's speed while pushing, so shifting something has
   # weight to it. Applied to both axes and on top of DIAGONAL_FACTOR. The
   # object copies the player's slowed delta, so it slows down too.
