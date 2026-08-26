@@ -42,6 +42,13 @@ module Config
   # drawing the raw canvas would leave the character hovering, and the hover
   # would grow with scale. PLAYER_FOOT_PAD is subtracted at draw time instead.
   # We do not trim the PNGs -- the 7-vs-8px variation IS the walk cycle's bob.
+  # On-screen height of the character FIGURE at full scale, in pixels. Each
+  # tier's drawn canvas size is derived from this and that tier's own
+  # measurements, so the traveller stays the same apparent size no matter which
+  # tier he is rendered at. Without this he would visibly resize when crossing
+  # a region boundary, which reads as a bug rather than a revelation.
+  CHARACTER_HEIGHT_PX = 90
+
   SPRITE_CANVAS   = 40    # source canvas, px
   PLAYER_FIGURE_H = 26    # visible figure height within that canvas, px
   PLAYER_FOOT_PAD = 7     # transparent rows below the feet, px
@@ -60,7 +67,10 @@ module Config
   RECOVERY_BLINK_ALPHA = 90
 
   # Frame files, referenced as sprites/player/frame_000.png .. frame_007.png.
-  PLAYER_SPRITE_DIR  = 'sprites/player'
+  # Stopgap: points at the myth tier so the game keeps running between the
+  # sprite move and Assets taking over path resolution. Deleted in the commit
+  # that introduces app/assets.rb as the single source of sprite paths.
+  PLAYER_SPRITE_DIR  = 'sprites/player/myth'
   PLAYER_FRAME_COUNT = 8
 
   # Ground covered per animation frame. The full 8-frame cycle therefore spans
