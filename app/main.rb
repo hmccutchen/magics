@@ -36,8 +36,8 @@ module Main
     Seams.update args
     Creature.update args
 
-    # After Creature, so an object landing this tick redirects the creature
-    # starting next tick rather than being overwritten by its wander step.
+    # After Creature, so an object landing this tick startles it starting next
+    # tick rather than having the bolt overwritten by its wander step.
     Rock.update args
   end
 

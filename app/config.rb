@@ -94,6 +94,11 @@ module Config
   # it rather than being held up by it.
   CREATURE_SPEED = 2.0
 
+  # A startled animal bolts. Faster than the player, but only for the few
+  # strides it takes to clear FLEE_DISTANCE -- long enough to read as alarm,
+  # too short to be a chase.
+  CREATURE_FLEE_SPEED = 3.8
+
   # The circuit of grazing spots, as [x, depth] pairs walked in order and then
   # repeated. Note it crosses the full depth range: the creature passes both in
   # front of and behind the player, which is what makes the draw-order sorting
@@ -111,13 +116,23 @@ module Config
   ]
 
   # How close (in mixed x/depth units) counts as reaching a spot. Must be
-  # larger than CREATURE_SPEED or the creature oversteps and orbits forever.
-  CREATURE_ARRIVE_DISTANCE = 4.0
+  # larger than the fastest creature speed or it oversteps every frame and
+  # orbits the point forever. Creature asserts this on load.
+  CREATURE_ARRIVE_DISTANCE = 5.0
 
-  # Frames the creature spends standing at a landing spot before resuming its
-  # circuit. Lives here rather than with the throw constants: it describes the
-  # creature's behaviour, not the object's flight.
-  CREATURE_LINGER_TICKS = 90
+  # How near a thrown object has to land before the creature notices it.
+  # Beyond this it carries on grazing, which is what keeps the throw a tool for
+  # moving an animal off a specific spot rather than a remote control.
+  CREATURE_STARTLE_RADIUS = 130.0
+
+  # How far it bolts once startled. Roughly its own body length several times
+  # over -- far enough to clear whatever it was standing on.
+  CREATURE_FLEE_DISTANCE = 95.0
+
+  # Frames the creature spends standing still after bolting, before it settles
+  # and drifts back to grazing. Lives here rather than with the throw
+  # constants: it describes the creature's behaviour, not the object's flight.
+  CREATURE_SETTLE_TICKS = 90
 
   # --- Pushing --------------------------------------------------------------
   #

@@ -1,8 +1,12 @@
 # Rock
 #
 # The thrown object. It is a noise-maker, not a weapon -- it never touches the
-# creature and never needs to. Landing is the entire point: on landing it tells
-# the creature about the noise, which pulls it off its circuit.
+# creature and never needs to. Landing is the entire point: a landing close
+# enough to startle sends the creature bolting a short way off, which is how
+# the player asks it to move out of the way.
+#
+# Nothing is scored and nothing is harmed. A throw that lands wide of the
+# creature simply makes a noise and is ignored.
 #
 # Lifecycle, tracked by `mode`:
 #
@@ -47,8 +51,8 @@ module Rock
       rock.origin_x     = player.x
       rock.origin_depth = player.depth
 
-      # Kept inside the stage so a throw at the edge cannot strand the creature
-      # walking toward somewhere it can never reach.
+      # Kept inside the stage so a throw at the edge cannot startle the
+      # creature toward somewhere it can never reach.
       rock.target_x     = target_x.clamp 0, Config::SCREEN_W
       rock.target_depth = World.clamp_depth target_depth
 
@@ -76,7 +80,7 @@ module Rock
     rock.mode      = :landed
     rock.landed_at = args.state.tick_count
 
-    Creature.distract args, rock.x, rock.depth
+    Creature.startle args, rock.x, rock.depth
   end
 
   def self.advance_linger args

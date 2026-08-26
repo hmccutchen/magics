@@ -6,19 +6,18 @@
 #
 # Its role is literal obstruction: sometimes it is standing where the player
 # needs to be, in front of something the player needs to see, or beside an
-# object the player needs to push. Worst case, it does not move and the player
-# tries something else.
+# object the player needs to push. A thrown object landing nearby startles it
+# into bolting a short way off, which is how the player asks it to move.
+#
+# Startling it is the ENTIRE interaction. Nothing here scores, damages, or
+# fails. If the creature has nowhere to bolt to it simply stays put and the
+# player tries again or finds another way -- the story doc calls that out as
+# the acceptable worst case, not a dead end to design around.
 #
 # Modes:
-#   :wandering     walking the circuit between grazing spots
-#   :approaching   walking toward where a thrown object landed
-#   :lingering     standing at that spot for a beat before resuming
-#
-# Note that :approaching walks TOWARD the noise, which is curiosity rather than
-# the startle the story doc describes ("startle or nudge an animal out of a
-# spot the player needs"). That inversion is deliberate for now -- reshaping it
-# into a startle is its own step, and doing it here would mean rewriting the
-# throw at the same time as stripping the adversarial loop.
+#   :wandering  walking the circuit between grazing spots
+#   :fleeing    bolting away from something that just landed near it
+#   :settling   standing still after a bolt, before drifting back to grazing
 module Creature
   def self.defaults args
     args.state.creature ||= args.state.new_entity(:creature) do |creature|
@@ -37,9 +36,9 @@ module Creature
       creature.grazing_index = 1
 
       creature.mode           = :wandering
-      creature.approach_x     = 0
-      creature.approach_depth = 0
-      creature.lingering_until = 0
+      creature.flee_x         = 0
+      creature.flee_depth     = 0
+      creature.settling_until = 0
     end
   end
 
@@ -47,27 +46,68 @@ module Creature
     defaults args
 
     case args.state.creature.mode
-    when :wandering   then wander args
-    when :approaching then approach args
-    when :lingering   then linger args
+    when :wandering then wander args
+    when :fleeing   then flee args
+    when :settling  then settle args
     end
   end
 
-  # Called by Rock when a thrown object lands. Interrupts whatever the creature
-  # was doing -- including an earlier approach, so a second throw redirects it.
-  def self.distract args, x, depth
+  # Called by Rock when a thrown object lands.
+  #
+  # Ignored unless the landing was close enough to notice, which is what keeps
+  # the throw a way of moving the animal off a particular spot rather than a
+  # remote control that works from anywhere on the stage.
+  #
+  # Interrupts whatever it was doing, including an earlier bolt, so a second
+  # throw redirects it.
+  def self.startle args, x, depth
     creature = args.state.creature
+    return unless near? creature, x, depth
 
-    creature.mode           = :approaching
-    creature.approach_x     = x
-    creature.approach_depth = depth
+    away_x, away_depth = away_from args, creature, x, depth
+
+    creature.mode       = :fleeing
+    creature.flee_x     = (creature.x + (away_x * Config::CREATURE_FLEE_DISTANCE))
+                          .clamp(0, Config::SCREEN_W)
+    creature.flee_depth = World.clamp_depth(
+      creature.depth + (away_depth * Config::CREATURE_FLEE_DISTANCE)
+    )
+  end
+
+  def self.near? creature, x, depth
+    dx = creature.x - x
+    dd = creature.depth - depth
+
+    Math.sqrt((dx * dx) + (dd * dd)) <= Config::CREATURE_STARTLE_RADIUS
+  end
+
+  # Unit vector pointing from the landing spot toward the creature.
+  #
+  # A pebble that lands exactly on it leaves no direction to run in, so it
+  # bolts away from the player instead -- which is where the thing came from,
+  # and reads better than a fixed compass direction would.
+  def self.away_from args, creature, x, depth
+    dx = creature.x - x
+    dd = creature.depth - depth
+
+    distance = Math.sqrt((dx * dx) + (dd * dd))
+    return [dx / distance, dd / distance] if distance > 0.001
+
+    player   = args.state.player
+    dx       = creature.x - player.x
+    dd       = creature.depth - player.depth
+    distance = Math.sqrt((dx * dx) + (dd * dd))
+
+    return [1.0, 0.0] if distance <= 0.001
+
+    [dx / distance, dd / distance]
   end
 
   def self.wander args
     creature = args.state.creature
     target   = Config::CREATURE_GRAZING_POINTS[creature.grazing_index]
 
-    result = move_toward args, creature, target[0], target[1]
+    result = move_toward args, creature, target[0], target[1], Config::CREATURE_SPEED
     return if result == :moving
 
     # :blocked heads for the next spot rather than standing there shoving a
@@ -77,22 +117,22 @@ module Creature
     creature.grazing_index = (creature.grazing_index + 1) % Config::CREATURE_GRAZING_POINTS.length
   end
 
-  def self.approach args
+  def self.flee args
     creature = args.state.creature
 
-    result = move_toward args, creature, creature.approach_x, creature.approach_depth
+    result = move_toward args, creature, creature.flee_x, creature.flee_depth, Config::CREATURE_FLEE_SPEED
     return if result == :moving
 
-    # A blocked approach settles where it got to. The noise is still roughly
-    # over there, and an animal stopped by an obstacle would not keep walking
-    # into it.
-    creature.mode            = :lingering
-    creature.lingering_until = args.state.tick_count + Config::CREATURE_LINGER_TICKS
+    # Arriving and being blocked both end the bolt. A creature boxed in stops
+    # where it got to -- the throw simply did not achieve much, which the story
+    # doc names as the acceptable worst case.
+    creature.mode           = :settling
+    creature.settling_until = args.state.tick_count + Config::CREATURE_SETTLE_TICKS
   end
 
-  def self.linger args
+  def self.settle args
     creature = args.state.creature
-    return if creature.lingering_until > args.state.tick_count
+    return if creature.settling_until > args.state.tick_count
 
     # Rejoin the circuit at whichever spot is closest, rather than the one it
     # was originally heading for. Without this the creature would often turn
@@ -101,7 +141,7 @@ module Creature
     creature.mode          = :wandering
   end
 
-  # Steps the creature one frame toward (x, depth).
+  # Steps the creature one frame toward (x, depth) at the given speed.
   #
   # Returns :arrived, :moving, or :blocked. Blocked means a pushable is in the
   # way -- the creature is stopped by them but, unlike the player, cannot shift
@@ -116,18 +156,16 @@ module Creature
   # but it means "speed" is not one consistent real-world quantity. If the
   # movement ever needs to feel precisely even, normalize depth into
   # pixel-equivalents first.
-  def self.move_toward args, creature, target_x, target_depth
+  def self.move_toward args, creature, target_x, target_depth, speed
     dx = target_x - creature.x
     dd = target_depth - creature.depth
 
     distance = Math.sqrt((dx * dx) + (dd * dd))
 
-    # Must exceed CREATURE_SPEED, or the creature oversteps every frame and
-    # orbits the point forever instead of arriving.
     return :arrived if distance <= Config::CREATURE_ARRIVE_DISTANCE
 
-    next_x     = creature.x + ((dx / distance) * Config::CREATURE_SPEED)
-    next_depth = World.clamp_depth(creature.depth + ((dd / distance) * Config::CREATURE_SPEED))
+    next_x     = creature.x + ((dx / distance) * speed)
+    next_depth = World.clamp_depth(creature.depth + ((dd / distance) * speed))
 
     return :blocked if Pushable.blocks? args, next_x, next_depth, creature
 
@@ -154,4 +192,17 @@ module Creature
 
     best_index
   end
+
+  # An arrive distance at or below the step size means the creature oversteps
+  # its target every frame and circles it forever, which looks like a bug in
+  # the pathing rather than a mistuned constant. Refuse to start instead.
+  # Runs on load, and therefore again on every hot-reload of this file.
+  def self.assert_arrive_distance_exceeds_speeds!
+    fastest = [Config::CREATURE_SPEED, Config::CREATURE_FLEE_SPEED].max
+    return if Config::CREATURE_ARRIVE_DISTANCE > fastest
+
+    raise "CREATURE_ARRIVE_DISTANCE (#{Config::CREATURE_ARRIVE_DISTANCE}) must exceed the fastest creature speed (#{fastest})"
+  end
+
+  assert_arrive_distance_exceeds_speeds!
 end
