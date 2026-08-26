@@ -6,6 +6,7 @@ require 'app/assets.rb'
 require 'app/scene.rb'
 require 'app/player.rb'
 require 'app/seams.rb'
+require 'app/throwables.rb'
 require 'app/creature.rb'
 require 'app/pushable.rb'
 require 'app/rock.rb'
@@ -36,8 +37,8 @@ module Main
     Seams.update args
     Creature.update args
 
-    # After Creature, so an object landing this tick startles it starting next
-    # tick rather than having the bolt overwritten by its wander step.
+    # After Creature and Pushable, so an object landing this tick takes effect
+    # starting next tick rather than being overwritten by their own steps.
     Rock.update args
   end
 

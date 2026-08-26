@@ -1,12 +1,12 @@
 # Rock
 #
-# The thrown object. It is a noise-maker, not a weapon -- it never touches the
-# creature and never needs to. Landing is the entire point: a landing close
-# enough to startle sends the creature bolting a short way off, which is how
-# the player asks it to move out of the way.
+# The thrown object. It is a signal, not a weapon -- it never touches anything
+# and never needs to. Landing is the entire point: whatever is near enough is
+# either drawn toward the spot or driven off it, depending on which throwable
+# is in hand. See Throwables.
 #
-# Nothing is scored and nothing is harmed. A throw that lands wide of the
-# creature simply makes a noise and is ignored.
+# Nothing is scored and nothing is harmed. A throw that lands wide of
+# everything simply makes a noise and is ignored.
 #
 # Lifecycle, tracked by `mode`:
 #
@@ -21,6 +21,7 @@
 # timer, you simply cannot throw again until the previous rock is gone.
 module Rock
   def self.update args
+    select args
     charge args
 
     return unless args.state.rock
@@ -29,6 +30,15 @@ module Rock
     when :flying then advance_flight args
     when :landed then advance_linger args
     end
+  end
+
+  # 1 and 2 pick which throwable is in hand. Written out rather than looped
+  # over a key table: there are two kinds, and naming them plainly is easier to
+  # read than the indirection that would let there be five.
+  def self.select args
+    args.state.throwable_index ||= 0
+    args.state.throwable_index = 0 if args.inputs.keyboard.key_down.one
+    args.state.throwable_index = 1 if args.inputs.keyboard.key_down.two
   end
 
   # Winds a throw up while the key is held and releases it on key-up.
@@ -99,6 +109,10 @@ module Rock
       rock.landed_at   = 0
       rock.launched_at = args.state.tick_count
 
+      # Fixed at launch, so switching what is in hand mid-flight cannot change
+      # what the rock already in the air is going to do when it lands.
+      rock.kind_index = args.state.throwable_index || 0
+
       # Time in the air and arc height are fixed at launch and carried on the
       # rock, so a constant retuned mid-flight cannot warp a throw already
       # under way.
@@ -122,7 +136,10 @@ module Rock
     rock.mode      = :landed
     rock.landed_at = args.state.tick_count
 
-    Creature.startle args, rock.x, rock.depth
+    effect = Throwables.at(rock.kind_index)[:effect]
+
+    Creature.react args, rock.x, rock.depth, effect
+    Pushable.react args, rock.x, rock.depth, effect
   end
 
   def self.advance_linger args

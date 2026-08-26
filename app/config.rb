@@ -236,6 +236,36 @@ module Config
   # Frames the landed rock stays visible before disappearing.
   ROCK_LINGER_TICKS = 36
 
+  # --- Throwables -----------------------------------------------------------
+  #
+  # What a landing does to things near it. The creature keeps its own startle
+  # constants; these are for pushable objects, which move much less readily.
+
+  # How near a landing has to be before an object reacts at all.
+  PUSHABLE_REACT_RADIUS = 150.0
+
+  # How far an object travels when drawn in, and when driven off. Shorter when
+  # attracted, because creeping toward something reads as more tentative than
+  # shying away from it.
+  PUSHABLE_ATTRACT_DISTANCE = 65.0
+  PUSHABLE_REPEL_DISTANCE   = 90.0
+
+  # Much slower than a push. An object moving itself should look reluctant
+  # next to one being shoved.
+  PUSHABLE_DRIFT_SPEED = 1.1
+
+  # Must exceed PUSHABLE_DRIFT_SPEED or an object orbits its target forever.
+  # Pushable asserts this on load.
+  PUSHABLE_ARRIVE_DISTANCE = 3.0
+
+  # Draws a marker over the player in the selected throwable's colour.
+  # Scaffolding, like SHOW_REGIONS: without it there is no way to tell which
+  # item is in hand, and the game has no HUD to put it in. Goes when the
+  # traveller is drawn actually holding the thing.
+  SHOW_SELECTED_THROWABLE = true
+  THROWABLE_MARKER_SIZE   = 12
+  THROWABLE_MARKER_LIFT   = 96
+
   # --- Gray-box palette -----------------------------------------------------
   # Plain [r, g, b] arrays. Splatted into render hashes by Renderer.
 
@@ -248,6 +278,13 @@ module Config
   COLOR_SEAM       = [138, 210, 196]
   COLOR_CREATURE   = [176, 92, 162]
   COLOR_ROCK       = [206, 206, 214]
+
+  # One per Throwables::KINDS entry, in the same order. Colour is how the two
+  # are told apart until there is art for them.
+  COLOR_THROWABLE = [
+    [232, 206, 118],   # lure  -- warm, draws things in
+    [104, 176, 214]    # scare -- cold, drives things off
+  ]
   COLOR_PUSHABLE   = [150, 138, 108]
   COLOR_REGION_RESOLVED = [138, 210, 196]
 end

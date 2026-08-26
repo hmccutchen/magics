@@ -6,18 +6,24 @@
 #
 # Its role is literal obstruction: sometimes it is standing where the player
 # needs to be, in front of something the player needs to see, or beside an
-# object the player needs to push. A thrown object landing nearby startles it
-# into bolting a short way off, which is how the player asks it to move.
+# object the player needs to push. A thrown object landing nearby either draws
+# it over or sends it off, depending on what was thrown, and that is how the
+# player asks it to move.
 #
-# Startling it is the ENTIRE interaction. Nothing here scores, damages, or
-# fails. If the creature has nowhere to bolt to it simply stays put and the
-# player tries again or finds another way -- the story doc calls that out as
-# the acceptable worst case, not a dead end to design around.
+# Moving it is the ENTIRE interaction. Nothing here scores, damages, or fails.
+# If the creature has nowhere to go it simply stays put and the player tries
+# again or finds another way -- the story doc calls that out as the acceptable
+# worst case, not a dead end to design around.
 #
 # Modes:
-#   :wandering  walking the circuit between grazing spots
-#   :fleeing    bolting away from something that just landed near it
-#   :settling   standing still after a bolt, before drifting back to grazing
+#   :wandering    walking the circuit between grazing spots
+#   :approaching  wandering over to something that landed nearby
+#   :fleeing      bolting away from something that landed nearby
+#   :settling     standing still afterwards, before returning to grazing
+#
+# Which of the two a landing produces depends on what was thrown -- see
+# Throwables. Curiosity is as useful as alarm here: drawing the animal ONTO a
+# spot is how you get it off a different one.
 module Creature
   def self.defaults args
     args.state.creature ||= args.state.new_entity(:creature) do |creature|
@@ -36,8 +42,8 @@ module Creature
       creature.grazing_index = 1
 
       creature.mode           = :wandering
-      creature.flee_x         = 0
-      creature.flee_depth     = 0
+      creature.target_x       = 0
+      creature.target_depth   = 0
       creature.settling_until = 0
     end
   end
@@ -46,9 +52,10 @@ module Creature
     defaults args
 
     case args.state.creature.mode
-    when :wandering then wander args
-    when :fleeing   then flee args
-    when :settling  then settle args
+    when :wandering   then wander args
+    when :approaching then head_to_landing args
+    when :fleeing     then flee args
+    when :settling    then settle args
     end
   end
 
@@ -58,19 +65,27 @@ module Creature
   # the throw a way of moving the animal off a particular spot rather than a
   # remote control that works from anywhere on the stage.
   #
-  # Interrupts whatever it was doing, including an earlier bolt, so a second
-  # throw redirects it.
-  def self.startle args, x, depth
+  # Interrupts whatever it was doing, including an earlier reaction, so a
+  # second throw redirects it.
+  def self.react args, x, depth, effect
     creature = args.state.creature
     return unless near? creature, x, depth
 
-    away_x, away_depth = away_from args, creature, x, depth
+    if effect == :attract
+      creature.mode         = :approaching
+      creature.target_x     = x
+      creature.target_depth = depth
+      return
+    end
 
-    creature.mode       = :fleeing
-    creature.flee_x     = (creature.x + (away_x * Config::CREATURE_FLEE_DISTANCE))
-                          .clamp(0, Config::SCREEN_W)
-    creature.flee_depth = World.clamp_depth(
-      creature.depth + (away_depth * Config::CREATURE_FLEE_DISTANCE)
+    dx, dd = Throwables.direction effect, x, depth, creature.x, creature.depth,
+                                  away_from_player(args, creature)
+
+    creature.mode         = :fleeing
+    creature.target_x     = (creature.x + (dx * Config::CREATURE_FLEE_DISTANCE))
+                            .clamp(0, Config::SCREEN_W)
+    creature.target_depth = World.clamp_depth(
+      creature.depth + (dd * Config::CREATURE_FLEE_DISTANCE)
     )
   end
 
@@ -81,23 +96,16 @@ module Creature
     Math.sqrt((dx * dx) + (dd * dd)) <= Config::CREATURE_STARTLE_RADIUS
   end
 
-  # Unit vector pointing from the landing spot toward the creature.
-  #
-  # A pebble that lands exactly on it leaves no direction to run in, so it
-  # bolts away from the player instead -- which is where the thing came from,
-  # and reads better than a fixed compass direction would.
-  def self.away_from args, creature, x, depth
-    dx = creature.x - x
-    dd = creature.depth - depth
+  # Fallback direction for a pebble that lands exactly on the creature, leaving
+  # no vector to work from: it reacts relative to the player instead, which is
+  # where the thing came from and reads better than a fixed compass direction.
+  def self.away_from_player args, creature
+    player = args.state.player
+
+    dx = creature.x - player.x
+    dd = creature.depth - player.depth
 
     distance = Math.sqrt((dx * dx) + (dd * dd))
-    return [dx / distance, dd / distance] if distance > 0.001
-
-    player   = args.state.player
-    dx       = creature.x - player.x
-    dd       = creature.depth - player.depth
-    distance = Math.sqrt((dx * dx) + (dd * dd))
-
     return [1.0, 0.0] if distance <= 0.001
 
     [dx / distance, dd / distance]
@@ -117,10 +125,22 @@ module Creature
     creature.grazing_index = (creature.grazing_index + 1) % Config::CREATURE_GRAZING_POINTS.length
   end
 
+  # Curiosity, at grazing pace -- an animal wandering over to see what fell,
+  # not charging it.
+  def self.head_to_landing args
+    creature = args.state.creature
+
+    result = move_toward args, creature, creature.target_x, creature.target_depth, Config::CREATURE_SPEED
+    return if result == :moving
+
+    creature.mode           = :settling
+    creature.settling_until = args.state.tick_count + Config::CREATURE_SETTLE_TICKS
+  end
+
   def self.flee args
     creature = args.state.creature
 
-    result = move_toward args, creature, creature.flee_x, creature.flee_depth, Config::CREATURE_FLEE_SPEED
+    result = move_toward args, creature, creature.target_x, creature.target_depth, Config::CREATURE_FLEE_SPEED
     return if result == :moving
 
     # Arriving and being blocked both end the bolt. A creature boxed in stops

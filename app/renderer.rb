@@ -16,6 +16,27 @@ module Renderer
     entities(args)
       .sort_by { |drawable| -drawable[:entity].depth }  # far -> near
       .each { |drawable| push args, drawable }
+
+    selected_marker args if Config::SHOW_SELECTED_THROWABLE
+  end
+
+  # Which throwable is in hand, as a chip floating over the traveller.
+  #
+  # Scaffolding, like the region overlay: the game has no HUD and the player is
+  # not drawn holding anything, so without this there is no way to tell the two
+  # apart before committing a throw. Drawn last, outside the depth sort, since
+  # it is not part of the world.
+  def self.selected_marker args
+    player = args.state.player
+    size   = Config::THROWABLE_MARKER_SIZE
+
+    args.outputs.sprites << Scene.solid(
+      player.x - (size / 2.0),
+      World.ground_y(player.depth) + Config::THROWABLE_MARKER_LIFT,
+      size,
+      size,
+      Config::COLOR_THROWABLE[args.state.throwable_index || 0]
+    )
   end
 
   # Everything that lives on the ground plane and must participate in depth
@@ -43,7 +64,13 @@ module Renderer
     end
 
     if args.state.rock
-      list << { entity: args.state.rock, color: Config::COLOR_ROCK, lift: Rock.lift(args) }
+      # Coloured by what it is, not by being a rock -- the two kinds are told
+      # apart by colour until there is art for them.
+      list << {
+        entity: args.state.rock,
+        color: Config::COLOR_THROWABLE[args.state.rock.kind_index],
+        lift: Rock.lift(args)
+      }
     end
 
     list
