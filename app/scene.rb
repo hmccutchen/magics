@@ -36,13 +36,31 @@ module Scene
     )
   end
 
+  # One patch per region, coloured by that region's tier, over a wilds-coloured
+  # base that fills any ground not covered by a defined region.
+  #
+  # Drawn base-first: regions never overlap each other, but they do sit on top
+  # of the wilds fill, which is what lets regions be authored incrementally
+  # without leaving holes in the world.
+  #
+  # When painterly backdrops are authored this colour fill becomes a sprite on
+  # the region, resolved through the same asset table -- same code path.
   def self.ground args
+    fill args, Regions::WILDS, Config::COLOR_GROUND_MYTH
+
+    Regions::REGIONS.each do |region|
+      tier  = Regions.resolved?(args, region[:name]) ? :truth : :myth
+      color = tier == :truth ? Config::COLOR_GROUND_TRUTH : Config::COLOR_GROUND_MYTH
+
+      fill args, region, color
+    end
+  end
+
+  def self.fill args, region, color
+    bounds = Regions.screen_bounds region
+
     args.outputs.sprites << solid(
-      0,
-      Config::GROUND_Y_NEAR,
-      Config::SCREEN_W,
-      Config::GROUND_Y_FAR - Config::GROUND_Y_NEAR,
-      Config::COLOR_GROUND
+      bounds[:x], bounds[:y], bounds[:w], bounds[:h], color
     )
   end
 
