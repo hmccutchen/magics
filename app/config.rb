@@ -121,6 +121,11 @@ module Config
   # nothing blocks the player yet.
   PUSH_FACTOR = 1.0
 
+  # Multiplies the player's speed while pushing, so shifting something has
+  # weight to it. Applied to both axes and on top of DIAGONAL_FACTOR. The
+  # object copies the player's slowed delta, so it slows down too.
+  PUSH_SPEED_FACTOR = 0.65
+
   # The push pose is a single held frame, so without this he slides across the
   # ground with no sign of effort. A small rise and fall gives the movement a
   # footfall to read against.

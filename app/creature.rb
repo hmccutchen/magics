@@ -67,16 +67,25 @@ module Creature
     creature = args.state.creature
     target   = Config::CREATURE_GRAZING_POINTS[creature.grazing_index]
 
-    return unless move_toward creature, target[0], target[1]
+    result = move_toward args, creature, target[0], target[1]
+    return if result == :moving
 
+    # :blocked heads for the next spot rather than standing there shoving a
+    # box forever. There is no fail state to protect, only a creature that
+    # would otherwise look broken -- and wandering off is what an animal that
+    # cannot get somewhere would do anyway.
     creature.grazing_index = (creature.grazing_index + 1) % Config::CREATURE_GRAZING_POINTS.length
   end
 
   def self.approach args
     creature = args.state.creature
 
-    return unless move_toward creature, creature.approach_x, creature.approach_depth
+    result = move_toward args, creature, creature.approach_x, creature.approach_depth
+    return if result == :moving
 
+    # A blocked approach settles where it got to. The noise is still roughly
+    # over there, and an animal stopped by an obstacle would not keep walking
+    # into it.
     creature.mode            = :lingering
     creature.lingering_until = args.state.tick_count + Config::CREATURE_LINGER_TICKS
   end
@@ -92,7 +101,11 @@ module Creature
     creature.mode          = :wandering
   end
 
-  # Steps the creature one frame toward (x, depth). Returns true on arrival.
+  # Steps the creature one frame toward (x, depth).
+  #
+  # Returns :arrived, :moving, or :blocked. Blocked means a pushable is in the
+  # way -- the creature is stopped by them but, unlike the player, cannot shift
+  # them. It is an animal leaning on a rock, not a bulldozer.
   #
   # The direction vector is normalized before scaling by speed, so the creature
   # covers the same ground per frame on diagonals as on straight runs -- the
@@ -103,7 +116,7 @@ module Creature
   # but it means "speed" is not one consistent real-world quantity. If the
   # movement ever needs to feel precisely even, normalize depth into
   # pixel-equivalents first.
-  def self.move_toward creature, target_x, target_depth
+  def self.move_toward args, creature, target_x, target_depth
     dx = target_x - creature.x
     dd = target_depth - creature.depth
 
@@ -111,12 +124,17 @@ module Creature
 
     # Must exceed CREATURE_SPEED, or the creature oversteps every frame and
     # orbits the point forever instead of arriving.
-    return true if distance <= Config::CREATURE_ARRIVE_DISTANCE
+    return :arrived if distance <= Config::CREATURE_ARRIVE_DISTANCE
 
-    creature.x     += (dx / distance) * Config::CREATURE_SPEED
-    creature.depth  = World.clamp_depth(creature.depth + ((dd / distance) * Config::CREATURE_SPEED))
+    next_x     = creature.x + ((dx / distance) * Config::CREATURE_SPEED)
+    next_depth = World.clamp_depth(creature.depth + ((dd / distance) * Config::CREATURE_SPEED))
 
-    false
+    return :blocked if Pushable.blocks? args, next_x, next_depth, creature
+
+    creature.x     = next_x
+    creature.depth = next_depth
+
+    :moving
   end
 
   def self.nearest_grazing_index creature

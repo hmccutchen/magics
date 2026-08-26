@@ -28,12 +28,11 @@ module Main
   end
 
   def update args
-    Player.update args
-
-    # After Player, so a pushable is displaced by movement that has already
-    # happened this frame rather than by last frame's leftovers.
+    # Before Player, so the pushables exist by the time a move is resolved
+    # against them.
     Pushable.update args
 
+    Player.update args
     Seams.update args
     Creature.update args
 

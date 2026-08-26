@@ -79,11 +79,18 @@ module World
   # coordinate. That reuse is worth the small mental hiccup; the rect never
   # escapes this module.
   def self.footprint entity
+    footprint_at entity.x, entity.depth, entity.fw, entity.fd
+  end
+
+  # The same box, for a position an entity has not moved to yet. Collision
+  # response has to ask "would this land me inside something" BEFORE committing
+  # the move, which an entity-shaped argument cannot express.
+  def self.footprint_at x, depth, fw, fd
     {
-      x: entity.x - (entity.fw / 2.0),
-      y: entity.depth - (entity.fd / 2.0),
-      w: entity.fw,
-      h: entity.fd
+      x: x - (fw / 2.0),
+      y: depth - (fd / 2.0),
+      w: fw,
+      h: fd
     }
   end
 
@@ -92,6 +99,11 @@ module World
   # default tolerance of 0.1, so merely touching edges does not count.
   def self.overlap? a, b
     footprint(a).intersect_rect? footprint(b)
+  end
+
+  # Would a box of this size, placed here, overlap `other`?
+  def self.would_overlap? x, depth, fw, fd, other
+    footprint_at(x, depth, fw, fd).intersect_rect? footprint(other)
   end
 
   # Horizontal bounds for an entity at a given depth, so it cannot walk far

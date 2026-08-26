@@ -45,10 +45,8 @@ module Player
       # displace an object by exactly what the player moved, which is what
       # keeps the two from separating without any collision response. Reset
       # every frame, so it is never stale.
-      player.moved_x     = 0.0
-      player.moved_depth = 0.0
-
-      # Set by Pushable each frame; drives which sprite set is drawn.
+      # Set while resolving a move; drives which sprite set is drawn and
+      # slows the next frame's step.
       player.pushing = false
     end
   end
@@ -165,10 +163,17 @@ module Player
     player.moving = !(dx.zero? && dd.zero?)
 
     unless player.moving
-      player.moved_x     = 0.0
-      player.moved_depth = 0.0
+      player.pushing = false
       return
     end
+
+    # Read before clearing. Whether this step is a push is only known once the
+    # move is resolved below, so the slowdown necessarily uses last frame's
+    # answer. Contact persists across frames, so the one-frame lag is not
+    # visible -- and the alternative, resolving twice per frame, is a lot of
+    # machinery to remove something nobody can see.
+    slowed = player.pushing
+    player.pushing = false
 
     # Captured before the move so the distance accumulated reflects what
     # actually happened. Walking into a clamp covers no ground, and therefore
@@ -179,11 +184,15 @@ module Player
     # Without this, holding two directions moves you ~41% faster diagonally.
     factor = (dx.zero? || dd.zero?) ? 1.0 : Config::DIAGONAL_FACTOR
 
+    # Shifting something has weight to it. The pushable copies this slowed
+    # delta, so the object slows down with him rather than pulling ahead.
+    factor *= Config::PUSH_SPEED_FACTOR if slowed
+
     player.facing_x     = dx
     player.facing_depth = dd
     player.heading_x    = dx unless dx.zero?
 
-    player.depth = World.clamp_depth(
+    candidate_depth = World.clamp_depth(
       player.depth + (dd * Config::PLAYER_SPEED_DEPTH * factor)
     )
 
@@ -191,11 +200,17 @@ module Player
     # and against the FOOTPRINT width rather than the drawn width -- the sprite
     # canvas is mostly transparent padding, so clamping by `w` would stop the
     # player a canvas-half-width short of each edge for no visible reason.
-    player.x = World.clamp_x(
+    candidate_x = World.clamp_x(
       player.x + (dx * Config::PLAYER_SPEED_X * factor),
       player.fw,
-      player.depth
+      candidate_depth
     )
+
+    # The world gets the last word: a step that would put the player inside
+    # something they cannot shift does not happen.
+    resolved     = Pushable.resolve args, player, candidate_x, candidate_depth
+    player.x     = resolved[0]
+    player.depth = resolved[1]
 
     accumulate_distance player, start_x, start_depth
   end
@@ -208,11 +223,8 @@ module Player
   # units, so this magnitude is not one consistent real-world quantity. It is
   # driving an animation cadence, not physics, so eyeballed is fine.
   def self.accumulate_distance player, start_x, start_depth
-    player.moved_x     = player.x - start_x
-    player.moved_depth = player.depth - start_depth
-
-    moved_x     = player.moved_x
-    moved_depth = player.moved_depth
+    moved_x     = player.x - start_x
+    moved_depth = player.depth - start_depth
     moved       = Math.sqrt((moved_x * moved_x) + (moved_depth * moved_depth))
 
     cycle = Config::WALK_CYCLE_DISTANCE
