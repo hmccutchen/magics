@@ -134,16 +134,21 @@ module Config
   PUSH_SPEED_FACTOR = 0.65
 
   # How far INSIDE a pushable's footprint the player has to reach before it
-  # will shift. Brushing the corner of a thing should not move it; you have to
-  # square up to it first.
+  # will shift, measured ACROSS the direction of travel. Brushing past the
+  # front or back of a thing should not move it; you have to square up first.
   #
   # Separate per axis because they are different units -- x is pixels, depth is
   # world units -- the same reason THROW_DISTANCE is split in two.
   #
-  # Raise these to demand tighter alignment, lower them to make pushing more
-  # forgiving. Zero restores the old behaviour, where any contact at all
-  # shifted the object.
-  PUSH_CONTACT_INSET_X     = 13
+  # INSET_DEPTH applies when walking left or right, and is the one that matters:
+  # it is what decides whether you shove an object or simply pass in front of
+  # it. Raise it to demand tighter lining-up.
+  #
+  # INSET_X applies when walking into or out of the scene, and is deliberately
+  # zero. Coming at something head-on, any horizontal contact should shift it;
+  # requiring you to be centred as well felt arbitrary, because there is no
+  # equivalent of "passing in front of it" along that axis.
+  PUSH_CONTACT_INSET_X     = 0
   PUSH_CONTACT_INSET_DEPTH = 10
 
   # The push pose is a single held frame, so without this he slides across the

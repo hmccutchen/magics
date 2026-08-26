@@ -4,22 +4,29 @@
 # through. There is no pick-up and no button: contact plus movement is the
 # whole verb.
 #
-# ALIGNMENT, NOT A SHRUNKEN BOX
+# ALIGNMENT, AND WALKING PAST
 #
-# A pushable's solid body is what nothing may enter. To actually shift it you
-# also have to be lined up with it -- but only ACROSS your direction of travel.
-#
-#   pushing east:            you make contact as soon as the bodies touch,
-#                            but you must be within the shaded depth band
+# To shift a pushable you have to be lined up with it ACROSS your direction of
+# travel. Walking east, that means being within a depth band; miss the band and
+# you walk straight past, in front of or behind the thing.
 #
 #         depth
 #           ^   +----------+
-#           |   |::::::::::|  <- lined up here: it moves
-#      [you]|   |::::::::::|
-#           |   +----------+  <- against the rim here: you stop, it does not
+#           |   |          |  <- off the band: you pass by, it does not move
+#           |   |::::::::::|  <- on the band: it moves
+#      [you]|   |          |
+#           |   +----------+
 #           +---------> x
 #
-# Insetting the travel axis as well would put that rim IN FRONT of the push
+# Passing by rather than being stopped is the point. A 2.5D stage means being
+# at a different depth from something is a real spatial fact, not a near miss,
+# so an object you are not squared up to should not be a wall.
+#
+# You still cannot walk THROUGH one: the middle of it is the push zone, and
+# entering that either shifts the object or, if it has nowhere to go, stops
+# you.
+#
+# Insetting the travel axis as well would put a dead rim IN FRONT of the push
 # zone on the way in, and nothing could ever be pushed at all.
 #
 # HOW A MOVE IS RESOLVED
@@ -29,10 +36,9 @@
 # player's own delta, so the two travel locked together and can never separate
 # or interpenetrate.
 #
-# Axis-at-a-time is doing two jobs: a refused x step leaves the depth step free
-# to happen, so running into a face you cannot shift carries you along it
-# rather than stopping you dead -- and that is also what lets you slide along
-# an object until you are square enough to get purchase on it.
+# Axis-at-a-time is what gives sliding: a refused x step leaves the depth step
+# free to happen, so leaning on something you cannot shift carries you along it
+# rather than stopping you dead.
 #
 # WHAT REFUSES A PUSH
 #
@@ -100,20 +106,16 @@ module Pushable
 
     return true if dx.abs < CLAMP_EPSILON && dd.abs < CLAMP_EPSILON
 
-    axis    = dx.abs < CLAMP_EPSILON ? :depth : :x
-    pushed  = []
-    blocked = false
+    axis   = dx.abs < CLAMP_EPSILON ? :depth : :x
+    pushed = []
 
     args.state.pushables.each_with_index do |pushable, index|
-      if in_push_zone? player, to_x, to_depth, pushable, axis
-        pushed << index
-      elsif World.would_overlap? to_x, to_depth, player.fw, player.fd, pushable
-        # Against the body but not lined up well enough to get purchase on it.
-        blocked = true
-      end
+      pushed << index if in_push_zone? player, to_x, to_depth, pushable, axis
     end
 
-    return false if blocked
+    # Overlapping the body without reaching the push zone is deliberately NOT
+    # a refusal -- that is walking past the thing. Only an object you have
+    # actually got hold of, and which has nowhere to go, stops you.
     return false unless pushed.all? { |index| can_move? args, index, dx, dd, pushed }
 
     pushed.each do |index|
