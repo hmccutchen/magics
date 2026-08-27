@@ -33,7 +33,7 @@ Walking to explore, picking things up, pushing things, and (reintroduced — see
 
 **The puzzle loop this produces:** moving an item can reveal part of the environment that seems subtly out of place — a detail that doesn't quite belong, fitting some larger pattern. Noticing and completing that pattern (by moving another item into place, and/or clearing an animal out of the way) is what reveals a gold seam. This is discovery-by-rearrangement rather than combat or evasion: the world holds a pattern, and playing means noticing and completing it.
 
-**Seam resolution beat:** once a seam is revealed, the owl hints at how to activate it (see example line below). Activating it changes the environment and its pixels/fidelity, revealing how the player can move forward through the world — then the player moves on. What exactly this looks like on screen is still open (see Open Questions).
+**Seam resolution beat:** once a seam is revealed, the owl hints at how to activate it (see example line below). **Seams are not doors or passages** — they are abstract objects. Activating one does not open a route; it changes the BIT STYLE of the character and/or the world around it (8-bit to 16-bit), which is the myth-to-truth mechanic made literal rather than represented. Then the player moves on. Every thing that resolves this way therefore needs a second set of sprites/art at the higher tier. What remains open is the activation GESTURE — what the player physically does to a revealed seam.
 
 There's more to explore in this loop — how many pattern/item/animal moments make up the world, whether all of them follow the same rhythm (find oddity → complete pattern → seam → owl hint → move on) or vary, and how the ambient life of the forest (bugs, butterflies, animals) might itself be part of a pattern rather than pure atmosphere.
 
@@ -57,7 +57,7 @@ Built in DragonRuby (Ruby-based game engine). Currently working: depth-axis (2.5
 1. ~~The core verb.~~ Walk / pick up / push (see "Core Verb" above).
 2. What was he originally searching for, and why did his world need it?
 3. Who or what is waiting at home — a person, or is "home" more about place/identity?
-4. What exactly does activating a seam change on screen — environment resolving around the player, the character's sprite changing tier, a hidden path becoming visible, or some combination?
+4. ~~What exactly does activating a seam change on screen.~~ The bit style steps up (e.g. 8-bit → 16-bit) for the character and/or the world around the seam. Seams are abstract objects, NOT doors — "a hidden path becoming visible" is explicitly not it. Requires new sprites/art at the higher tier. Still open, narrowly: the activation *gesture* — what the player does to a revealed seam to set this off.
 5. How many pattern/item moments make up this one world, and do they all follow the same rhythm (oddity → pattern → seam → owl hint → move on), or does that rhythm vary?
 6. ~~Working title.~~ *Magics* (working title, may still change).
 

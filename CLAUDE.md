@@ -83,10 +83,18 @@ These matter more here than they would on a settled codebase, precisely
   object that does not fit it; shifting that off reveals the mark, and pushing
   the matching object in reveals the region's seam. The ordering is enforced
   by objects blocking each other, not by a state machine.
-- Walking into a revealed seam is still a PLACEHOLDER for activation --
-  story-doc open question 4 (what activating a seam changes on screen) is
-  unresolved, so only the rendering half of it exists: the region flips to
-  truth and its ground and contents change tier.
+- Story-doc question 4 is ANSWERED: a seam is an abstract object, not a door.
+  Activating one opens no path -- it steps the bit style up (8-bit to 16-bit)
+  for the character and the world around it. The fidelity system already
+  delivers exactly that, so the effect is built, not placeholder. What is
+  still a placeholder is the GESTURE: "walk into it" stands in until the real
+  activation action is decided (one condition in `Seams.check_activated`).
+- The bit-step is therefore ART-BLOCKED, not code-blocked. `Assets` declares
+  no `:truth` tier for anything, so a resolved region logs a fallback and the
+  player keeps his myth sprite. Ground colour is the only visible change
+  today. Gray-box solids (creature, pushables, rock, seam) are NOT tier-aware
+  at all -- `Renderer.push_solid` takes a fixed colour -- so they will only
+  step up once they are real sprites going through `Assets`.
 - The owl is in, as a real entity in world-space (`owl.rb`) that follows the
   player with slack rather than a fixed offset. It is airborne: its
   (x, depth) is the ground it is above, and `lift` raises only where it is

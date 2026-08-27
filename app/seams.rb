@@ -11,12 +11,20 @@
 # REVEALING is Pattern's job: a seam appears when the pattern in its region is
 # completed.
 #
-# ACTIVATION is still "walk into it", and is a PLACEHOLDER rather than a
-# decision: open question 4 in the story doc -- what activating a seam changes
-# on screen -- is unresolved, and the owl, which is supposed to hint at how to
-# activate, does not exist yet. This is the same check the retired goal object
-# used, kept because reveal-then-activate is one designed beat and dropping the
-# second half would leave nothing to resolve a region at all.
+# WHAT ACTIVATION DOES is now decided, and is not a placeholder. A seam is an
+# abstract object, NOT a door: activating one opens no route and moves the
+# player nowhere. It steps the BIT STYLE up -- 8-bit to 16-bit -- for the
+# character and the world around it. That is the myth-to-truth mechanic made
+# literal rather than represented, so resolving a region IS the whole effect,
+# and the fidelity system already carries it: Regions.tier_at flips to :truth,
+# and Renderer and Scene redraw against that tier. Nothing else needs to
+# happen here.
+#
+# What IS still a placeholder is the activation GESTURE. "Walk into it" is
+# this file's stand-in for whatever the player eventually does to a revealed
+# seam; the story doc leaves that open, and says only that the owl hints at
+# it. The gesture is one condition in check_activated below, so replacing it
+# touches one method.
 #
 # There is no `repaired` flag. One seam per region means a repaired seam IS a
 # resolved region, so Regions.resolved? already answers it -- one fact, stored
