@@ -314,6 +314,23 @@ module Config
   # rather than snapping the moment the mode flips.
   OWL_LIFT_EASE = 0.08
 
+  # --- What the owl says ----------------------------------------------------
+
+  # How long one line stays on screen. A count of ticks rather than a fade
+  # state machine -- the owl speaks rarely, and there is nothing here worth
+  # animating yet.
+  OWL_LINE_TICKS = 210
+
+  OWL_SPEECH_SIZE_PX = 18
+
+  # Gap between the top of the owl's drawn rect and the baseline of its text,
+  # so the line sits above the bird rather than across it.
+  OWL_SPEECH_RISE_PX = 14
+
+  # Closest the text may come to the screen edge. A line spoken near the wall
+  # slides along the owl rather than running off-stage.
+  OWL_SPEECH_MARGIN = 12
+
   # --- Gray-box palette -----------------------------------------------------
   # Plain [r, g, b] arrays. Splatted into render hashes by Renderer.
 
@@ -327,6 +344,10 @@ module Config
   COLOR_CREATURE   = [176, 92, 162]
   COLOR_ROCK       = [206, 206, 214]
   COLOR_OWL        = [214, 196, 156]
+
+  # Deliberately unlike every other colour here. Nothing else on screen speaks,
+  # and when something else eventually does, the owl must not read as it.
+  COLOR_OWL_SPEECH = [236, 226, 198]
 
   # One per Throwables::KINDS entry, in the same order. Colour is how the two
   # are told apart until there is art for them.

@@ -46,6 +46,15 @@ module GameState
     args.state.revealed_seams   = []
     args.state.charging_since   = nil
     args.state.throwable_index  = 0
+
+    # The owl's speech state. Plain values rather than entity fields, for the
+    # same reason as the lists above: they survive a hot-reload without a
+    # schema bump. owl_last_region starts nil so the first frame counts as
+    # standing somewhere rather than entering it.
+    args.state.owl_last_region  = nil
+    args.state.owl_line         = nil
+    args.state.owl_line_until   = 0
+    args.state.owl_said         = []
   end
 
   def self.clear_entities args
