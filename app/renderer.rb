@@ -24,7 +24,11 @@ module Renderer
   def self.entities args
     list = [
       Player.drawable(args),
-      { entity: args.state.creature, color: Config::COLOR_CREATURE }
+      { entity: args.state.creature, color: Config::COLOR_CREATURE },
+
+      # The owl is airborne: `lift` raises where it is DRAWN without touching
+      # its depth, so it still sorts by the ground beneath it.
+      { entity: args.state.owl, color: Config::COLOR_OWL, lift: args.state.owl.lift }
     ]
 
     # Each module owns the rule for whether it is on screen; the renderer just

@@ -267,6 +267,53 @@ module Config
   SOCKET_TOLERANCE_X     = 26
   SOCKET_TOLERANCE_DEPTH = 18.0
 
+  # --- The owl --------------------------------------------------------------
+  #
+  # It is NOT glued to a fixed offset. It perches, lets the player walk off,
+  # then flies to catch up -- so it is usually ahead of or behind him rather
+  # than beside him, which is the whole character of the thing.
+
+  OWL_W  = 26
+  OWL_H  = 30
+  OWL_FW = 22
+  OWL_FD = 16
+
+  # Where it wants to be relative to the player: behind him along x (mirrored
+  # by his heading, so it swaps sides when he turns) and slightly further into
+  # the scene, so it sits above and behind rather than blocking what he faces.
+  OWL_FOLLOW_OFFSET_X     = 70
+  OWL_FOLLOW_OFFSET_DEPTH = 26.0
+
+  # How far the anchor may drift before the owl bothers to move. This is what
+  # makes it a companion instead of a cursor: below this it simply sits there
+  # while the player mills about.
+  OWL_SLACK_RADIUS = 130.0
+
+  # Close enough to call it arrived and perch. Must exceed OWL_SPEED or it
+  # oversteps every frame and orbits the anchor forever -- asserted in owl.rb.
+  OWL_ARRIVE_DISTANCE = 8.0
+
+  # Faster than the player, because it has to close a gap he is still opening.
+  OWL_SPEED        = 4.6
+  OWL_ACCELERATION = 0.14
+
+  # Eases down over the last stretch so it settles onto the perch instead of
+  # stopping dead, floored so the curve cannot creep toward zero.
+  OWL_SLOWDOWN_DISTANCE = 60.0
+  OWL_MIN_SPEED         = 0.6
+
+  # Drawn height above the ground plane. The owl does not stand on the floor,
+  # so its (x, depth) is the point it is ABOVE and this raises the sprite off
+  # it -- the same mechanism the thrown rock uses to look airborne while still
+  # sorting by where it is on the ground.
+  OWL_PERCH_LIFT  = 58
+  OWL_FLIGHT_LIFT = 96
+
+  # How quickly the drawn height eases between the two, as a fraction of the
+  # remaining gap per frame. Kept well below 1 so it rises and drops smoothly
+  # rather than snapping the moment the mode flips.
+  OWL_LIFT_EASE = 0.08
+
   # --- Gray-box palette -----------------------------------------------------
   # Plain [r, g, b] arrays. Splatted into render hashes by Renderer.
 
@@ -279,6 +326,7 @@ module Config
   COLOR_SEAM       = [138, 210, 196]
   COLOR_CREATURE   = [176, 92, 162]
   COLOR_ROCK       = [206, 206, 214]
+  COLOR_OWL        = [214, 196, 156]
 
   # One per Throwables::KINDS entry, in the same order. Colour is how the two
   # are told apart until there is art for them.

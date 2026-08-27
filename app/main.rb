@@ -8,6 +8,7 @@ require 'app/player.rb'
 require 'app/seams.rb'
 require 'app/throwables.rb'
 require 'app/creature.rb'
+require 'app/owl.rb'
 require 'app/pushable.rb'
 require 'app/pattern.rb'
 require 'app/rock.rb'
@@ -42,6 +43,10 @@ module Main
 
     Seams.update args
     Creature.update args
+
+    # After Player, so the owl follows where he IS this frame rather than
+    # trailing a frame behind him.
+    Owl.update args
 
     # After Creature and Pushable, so an object landing this tick takes effect
     # starting next tick rather than being overwritten by their own steps.

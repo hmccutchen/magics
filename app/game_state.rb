@@ -19,10 +19,10 @@
 # We clear only our own keys rather than calling $gtk.reset, so this stays a
 # narrow, predictable action rather than an engine-wide restart.
 module GameState
-  VERSION = 19
+  VERSION = 20
 
   # Every args.state key that holds an entity built from Config defaults.
-  OWNED_KEYS = [:player, :seams, :pushables, :creature, :rock]
+  OWNED_KEYS = [:player, :seams, :pushables, :creature, :rock, :owl]
 
   def self.ensure_current! args
     return if args.state.schema_version == VERSION
@@ -54,6 +54,7 @@ module GameState
     args.state.pushables = nil
     args.state.creature  = nil
     args.state.rock      = nil
+    args.state.owl       = nil
   end
 
   def self.log_reset args
