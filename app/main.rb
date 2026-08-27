@@ -5,12 +5,13 @@ require 'app/regions.rb'
 require 'app/assets.rb'
 require 'app/scene.rb'
 require 'app/player.rb'
-require 'app/item.rb'
-require 'app/seam.rb'
-require 'app/enemy.rb'
+require 'app/seams.rb'
+require 'app/throwables.rb'
+require 'app/creature.rb'
+require 'app/pushable.rb'
+require 'app/pattern.rb'
 require 'app/rock.rb'
 require 'app/renderer.rb'
-require 'app/completion.rb'
 
 module Main
   def tick args
@@ -22,32 +23,38 @@ module Main
     # the entities to nil so they rebuild from defaults; if that happened later
     # in the frame, the render pass would read nil entities and crash. Running
     # it here means the very next line recreates everything in the same tick.
-    Completion.check_restart args if args.state.mode == :complete
+    GameState.restart! args if args.inputs.keyboard.key_down.r
 
-    update args unless args.state.mode == :complete
+    update args
     render args
   end
 
-  # The whole simulation for one frame. Skipped entirely once the level is
-  # complete, which is what "the game stops" means here -- the enemy stops
-  # patrolling, the rock stops flying, and nothing can undo the win.
   def update args
+    # Before Player, so the pushables exist by the time a move is resolved
+    # against them.
+    Pushable.update args
+
     Player.update args
-    Item.update args
 
-    # Before Enemy, so that being caught on the same tick as a pickup wins.
-    Seam.update args
-    Enemy.update args
+    # After Player, so a socket filled by this frame's push is recognised now
+    # rather than a frame later.
+    Pattern.update args
 
-    # After Enemy, so a rock landing this tick redirects the enemy starting
-    # next tick rather than being overwritten by its patrol step.
+    Seams.update args
+    Creature.update args
+
+    # After Creature and Pushable, so an object landing this tick takes effect
+    # starting next tick rather than being overwritten by their own steps.
     Rock.update args
   end
 
   def render args
     Scene.render args
-    Renderer.draw args
 
-    Completion.render args if args.state.mode == :complete
+    # Between the two: sockets are markings on the floor, so they sit above the
+    # backdrop and below everything that stands on it.
+    Pattern.render args
+
+    Renderer.draw args
   end
 end

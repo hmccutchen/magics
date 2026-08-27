@@ -22,16 +22,6 @@ module Player
       player.fw    = Config::PLAYER_FW
       player.fd    = Config::PLAYER_FD
 
-      # The single source of truth for "does the player have the item's
-      # effect right now". The item's visibility and the seam's visibility are
-      # both DERIVED from this rather than tracked separately, so they cannot
-      # drift out of sync. Step 6 (enemy contact) will flip this back to false.
-      player.carrying = false
-
-      # Tick at which the recovery window after an enemy hit expires. Compared
-      # against tick_count, so 0 means "not recovering".
-      player.recovering_until = 0
-
       # Last direction the player moved, used to aim the throw. Persists while
       # standing still, so you can stop, turn, and throw. Starts facing right.
       player.facing_x     = 1.0
@@ -50,6 +40,14 @@ module Player
       # foot-sliding to tune away.
       player.walk_distance = 0.0
       player.moving        = false
+
+      # Ground actually covered this frame, per axis. Published so Pushable can
+      # displace an object by exactly what the player moved, which is what
+      # keeps the two from separating without any collision response. Reset
+      # every frame, so it is never stale.
+      # Set while resolving a move; drives which sprite set is drawn and
+      # slows the next frame's step.
+      player.pushing = false
     end
   end
 
@@ -58,20 +56,35 @@ module Player
     move args
   end
 
-  # True while the player is immune following an enemy hit.
-  def self.recovering? args
-    args.state.player.recovering_until > args.state.tick_count
-  end
-
-  # Fades in and out while recovering, so the immunity window stays legible
-  # without a HUD element. The gray-box swapped colours; a sprite blinks by
-  # dropping alpha instead.
-  def self.alpha args
-    return 255 unless recovering? args
-
-    phase = (args.state.tick_count / Config::RECOVERY_BLINK_RATE).to_i
-    phase.even? ? Config::RECOVERY_BLINK_ALPHA : 255
-  end
+  # Which push pose to draw, keyed by the direction being walked:
+  # PUSH_POSES[depth input][horizontal input] -> [sprite name, mirrored?].
+  #
+  # Integer keys rather than an [x, depth] array key, and a lookup table rather
+  # than a built-up string, because this runs every frame and the codebase
+  # already avoids allocating at 60fps.
+  #
+  # +1 depth is INTO the scene, matching args.inputs.up_down.
+  #
+  # There is no south-west art yet, so it mirrors south-east -- the same trick
+  # the walk cycle uses to serve both horizontal directions from one set. Add
+  # a south-west.png, declare it in Assets, and this one entry replaces it.
+  PUSH_POSES = {
+     1 => {
+      -1 => [:player_push_north_west, false],
+       0 => [:player_push_north,      false],
+       1 => [:player_push_north_east, false]
+    },
+     0 => {
+      -1 => [:player_push_west,  false],
+       0 => [:player_push_south, false],
+       1 => [:player_push_east,  false]
+    },
+    -1 => {
+      -1 => [:player_push_south_east, true],
+       0 => [:player_push_south,      false],
+       1 => [:player_push_south_east, false]
+    }
+  }
 
   # Everything the renderer needs to draw the player this frame. Deliberately
   # carries a sprite NAME and a normalised cycle position, never a file path
@@ -79,13 +92,53 @@ module Player
   # standing. This is also what makes cadence independent of frame count: a
   # 4-frame myth cycle and an 8-frame truth cycle cover the same ground.
   def self.drawable args
+    return push_drawable args if args.state.player.pushing
+
     {
       entity: args.state.player,
       sprite: :player_walk,
       progress: cycle_progress(args),
-      flip: args.state.player.heading_x < 0,
-      alpha: alpha(args)
+      flip: args.state.player.heading_x < 0
     }
+  end
+
+  # The push pose is a single held frame, not a cycle -- he braces and stays
+  # braced while the object slides -- so no progress is passed.
+  #
+  # Direction comes from facing, which is set from this frame's input. Falls
+  # back to the south pose rather than raising if facing is ever a value the
+  # table has no row for.
+  def self.push_drawable args
+    player = args.state.player
+
+    row  = PUSH_POSES[player.facing_depth] || PUSH_POSES[0]
+    pose = row[player.facing_x] || [:player_push_south, false]
+
+    {
+      entity: player,
+      sprite: pose[0],
+      flip: pose[1],
+      lift: push_bob(player)
+    }
+  end
+
+  # Vertical rise and fall while pushing, in screen pixels.
+  #
+  # Driven by walk_distance rather than a timer, for the same reason the walk
+  # cycle is: cadence then follows ground speed automatically, so a slower
+  # diagonal push bobs slower too and there is no foot-sliding to tune away.
+  #
+  # abs(sin) rather than sin, so the body only ever rises off the ground line
+  # and returns to it -- one hump per footfall, never dipping below his feet.
+  #
+  # Scaled by depth so the bob shrinks along with him as he walks away. The
+  # thrown rock's arc deliberately does NOT do this, because its height reads
+  # as distance travelled rather than as part of the figure.
+  def self.push_bob player
+    progress = player.walk_distance / Config::WALK_CYCLE_DISTANCE
+    hump     = Math.sin(progress * Math::PI * Config::PUSH_BOB_STEPS).abs
+
+    hump * Config::PUSH_BOB_PX * World.scale(player.depth)
   end
 
   # Position through the walk cycle, 0.0 to 1.0. Standing still reports 0.0
@@ -108,7 +161,19 @@ module Player
     dd = args.inputs.up_down
 
     player.moving = !(dx.zero? && dd.zero?)
-    return unless player.moving
+
+    unless player.moving
+      player.pushing = false
+      return
+    end
+
+    # Read before clearing. Whether this step is a push is only known once the
+    # move is resolved below, so the slowdown necessarily uses last frame's
+    # answer. Contact persists across frames, so the one-frame lag is not
+    # visible -- and the alternative, resolving twice per frame, is a lot of
+    # machinery to remove something nobody can see.
+    slowed = player.pushing
+    player.pushing = false
 
     # Captured before the move so the distance accumulated reflects what
     # actually happened. Walking into a clamp covers no ground, and therefore
@@ -119,11 +184,15 @@ module Player
     # Without this, holding two directions moves you ~41% faster diagonally.
     factor = (dx.zero? || dd.zero?) ? 1.0 : Config::DIAGONAL_FACTOR
 
+    # Shifting something has weight to it. The pushable copies this slowed
+    # delta, so the object slows down with him rather than pulling ahead.
+    factor *= Config::PUSH_SPEED_FACTOR if slowed
+
     player.facing_x     = dx
     player.facing_depth = dd
     player.heading_x    = dx unless dx.zero?
 
-    player.depth = World.clamp_depth(
+    candidate_depth = World.clamp_depth(
       player.depth + (dd * Config::PLAYER_SPEED_DEPTH * factor)
     )
 
@@ -131,11 +200,17 @@ module Player
     # and against the FOOTPRINT width rather than the drawn width -- the sprite
     # canvas is mostly transparent padding, so clamping by `w` would stop the
     # player a canvas-half-width short of each edge for no visible reason.
-    player.x = World.clamp_x(
+    candidate_x = World.clamp_x(
       player.x + (dx * Config::PLAYER_SPEED_X * factor),
       player.fw,
-      player.depth
+      candidate_depth
     )
+
+    # The world gets the last word: a step that would put the player inside
+    # something they cannot shift does not happen.
+    resolved     = Pushable.resolve args, player, candidate_x, candidate_depth
+    player.x     = resolved[0]
+    player.depth = resolved[1]
 
     accumulate_distance player, start_x, start_depth
   end
@@ -144,7 +219,7 @@ module Player
   # accumulator stays bounded over a long session instead of drifting into
   # float imprecision.
   #
-  # Same mixed-unit caveat as the enemy's patrol: x is pixels and depth is world
+  # Same mixed-unit caveat as the creature's circuit: x is pixels and depth is world
   # units, so this magnitude is not one consistent real-world quantity. It is
   # driving an animation cadence, not physics, so eyeballed is fine.
   def self.accumulate_distance player, start_x, start_depth

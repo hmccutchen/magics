@@ -67,12 +67,29 @@ These matter more here than they would on a settled codebase, precisely
 - Depth-axis (2.5D, Sword & Sworcery-style) movement is working: x-axis +
   depth-axis, with depth affecting draw scale and draw order.
 - Animated directional walk cycle is working, using real sprite art
-  (PixelLab-generated).
-- No jumping, no gravity — this is a walking-based game.
+  (PixelLab-generated). The walk cycle is a single SIDE VIEW used for all
+  eight directions; the push poses are genuinely directional. Per-direction
+  walk art is the biggest outstanding art gap.
+- No jumping, no gravity -- this is a walking-based game.
 - Collision uses ground-plane footprint checks in world (x, depth) space,
   not screen-space.
-- Currently reworking: pick-up / push / throw-to-redirect-a-creature loop,
-  replacing an earlier adversarial enemy mechanic (see story doc for why).
+- Bit-depth fidelity system is in: regions are myth or truth, and a region's
+  tier resolves what its contents are drawn as (`regions.rb`, `assets.rb`).
+- The adversarial loop is GONE -- no enemy, no damage, no fail state, no
+  pickup item. `creature.rb` replaces `enemy.rb`.
+- Manipulation verbs are in: pushing (with weight, alignment, sliding and
+  solid blocking) and throw-to-startle.
+- The two-step pattern is in (`pattern.rb`): a socket starts hidden under an
+  object that does not fit it; shifting that off reveals the mark, and pushing
+  the matching object in reveals the region's seam. The ordering is enforced
+  by objects blocking each other, not by a state machine.
+- Walking into a revealed seam is still a PLACEHOLDER for activation --
+  story-doc open question 4 (what activating a seam changes on screen) is
+  unresolved, so only the rendering half of it exists: the region flips to
+  truth and its ground and contents change tier.
+- Still to come: the owl, ambient life, world structure and traversal, the
+  ending. Also unresolved: story-doc question 5, how many pattern moments the
+  world holds and whether they share a rhythm.
 
 ## Git
 

@@ -24,16 +24,32 @@ module Renderer
   def self.entities args
     list = [
       Player.drawable(args),
-      { entity: args.state.enemy, color: Config::COLOR_ENEMY }
+      { entity: args.state.creature, color: Config::COLOR_CREATURE }
     ]
 
     # Each module owns the rule for whether it is on screen; the renderer just
     # asks. Keeps game rules out of the drawing code.
-    list << { entity: args.state.item, color: Config::COLOR_ITEM } if Item.visible? args
-    list << { entity: args.state.seam, color: Config::COLOR_SEAM } if Seam.visible? args
+    Seams.visible(args).each do |seam|
+      list << { entity: seam, color: Config::COLOR_SEAM }
+    end
+
+    args.state.pushables.each_with_index do |pushable, index|
+      list << {
+        entity: pushable,
+        color: Config::COLOR_PUSHABLE[index],
+        offset_x: pushable.lag_x,
+        offset_depth: pushable.lag_depth
+      }
+    end
 
     if args.state.rock
-      list << { entity: args.state.rock, color: Config::COLOR_ROCK, lift: Rock.lift(args) }
+      # Coloured by what it is, not by being a rock -- the two kinds are told
+      # apart by colour until there is art for them.
+      list << {
+        entity: args.state.rock,
+        color: Config::COLOR_THROWABLE[args.state.rock.kind_index],
+        lift: Rock.lift(args)
+      }
     end
 
     list
@@ -74,8 +90,19 @@ module Renderer
     )
   end
 
+  # `offset_*` nudge only where the entity is DRAWN, never where it is. Depth
+  # sorting still uses the true depth, so a trailing object cannot swap places
+  # with something it is level with.
   def self.push_solid args, drawable
-    rect = World.screen_rect drawable[:entity], (drawable[:lift] || 0)
+    entity = drawable[:entity]
+
+    rect = World.place(
+      entity.x + (drawable[:offset_x] || 0),
+      entity.depth + (drawable[:offset_depth] || 0),
+      entity.w,
+      entity.h,
+      drawable[:lift] || 0
+    )
 
     args.outputs.sprites << Scene.solid(
       rect[:x], rect[:y], rect[:w], rect[:h], drawable[:color]

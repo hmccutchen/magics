@@ -14,8 +14,9 @@ module Scene
   # readability aid so you can see the depth axis; art will replace this.
   DEPTH_LINE_COUNT = 6
 
-  GRID_LINE_THICKNESS    = 1
-  HORIZON_LINE_THICKNESS = 2
+  GRID_LINE_THICKNESS      = 1
+  HORIZON_LINE_THICKNESS   = 2
+  REGION_OUTLINE_THICKNESS = 2
 
   def self.render args
     args.outputs.background_color = Config::COLOR_BACKGROUND
@@ -33,7 +34,7 @@ module Scene
   def self.region_overlay args
     Regions::REGIONS.each do |region|
       bounds = Regions.screen_bounds region
-      color  = Regions.resolved?(args, region[:name]) ? Config::COLOR_BANNER : Config::COLOR_HORIZON
+      color  = Regions.resolved?(args, region[:name]) ? Config::COLOR_REGION_RESOLVED : Config::COLOR_HORIZON
 
       outline args, bounds, color
 
@@ -48,7 +49,7 @@ module Scene
   end
 
   def self.outline args, bounds, color
-    thickness = 2
+    thickness = REGION_OUTLINE_THICKNESS
 
     args.outputs.sprites << solid(bounds[:x], bounds[:y], bounds[:w], thickness, color)
     args.outputs.sprites << solid(bounds[:x], bounds[:y] + bounds[:h] - thickness, bounds[:w], thickness, color)
@@ -66,28 +67,20 @@ module Scene
     )
   end
 
-  # One patch per region, coloured by that region's tier, over a wilds-coloured
-  # base that fills any ground not covered by a defined region.
-  #
   # Drawn base-first: regions never overlap each other, but they do sit on top
   # of the wilds fill, which is what lets regions be authored incrementally
   # without leaving holes in the world.
-  #
-  # When painterly backdrops are authored this colour fill becomes a sprite on
-  # the region, resolved through the same asset table -- same code path.
   def self.ground args
-    fill args, Regions::WILDS, Config::COLOR_GROUND_MYTH
+    fill args, Regions::WILDS
 
     Regions::REGIONS.each do |region|
-      tier  = Regions.resolved?(args, region[:name]) ? :truth : :myth
-      color = tier == :truth ? Config::COLOR_GROUND_TRUTH : Config::COLOR_GROUND_MYTH
-
-      fill args, region, color
+      fill args, region
     end
   end
 
-  def self.fill args, region, color
+  def self.fill args, region
     bounds = Regions.screen_bounds region
+    color  = Regions.resolved?(args, region[:name]) ? Config::COLOR_GROUND_TRUTH : Config::COLOR_GROUND_MYTH
 
     args.outputs.sprites << solid(
       bounds[:x], bounds[:y], bounds[:w], bounds[:h], color
@@ -136,8 +129,6 @@ module Scene
   #   2. DragonRuby 7.15 deprecated the `solid` primitive. The replacement is a
   #      sprite whose path is the built-in :solid texture -- same result,
   #      several times faster, and no deprecation notification on screen.
-  # `alpha` defaults to fully opaque; the completion banner uses it to dim the
-  # scene behind the text without hiding it.
   def self.solid x, y, w, h, color, alpha = 255
     { x: x, y: y, w: w, h: h, path: :solid, a: alpha, **rgb(color) }
   end

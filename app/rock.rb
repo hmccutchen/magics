@@ -1,18 +1,28 @@
 # Rock
 #
-# The thrown object. It is a noise-maker, not a weapon -- it never touches the
-# enemy and never needs to. Landing is the entire point: on landing it tells the
-# enemy to come look, which pulls the enemy off its patrol and off your route.
+# The thrown object. It is a signal, not a weapon -- it never touches anything
+# and never needs to. Landing is the entire point: whatever is near enough is
+# either drawn toward the spot or driven off it, depending on which throwable
+# is in hand. See Throwables.
+#
+# Nothing is scored and nothing is harmed. A throw that lands wide of
+# everything simply makes a noise and is ignored.
 #
 # Lifecycle, tracked by `mode`:
 #
-#   (none)  --press space-->  :flying  --arrives-->  :landed  --linger-->  (none)
+#   (none) --hold space--> charging --release--> :flying --> :landed --> (none)
+#
+# Holding the key winds the throw up: release at once for a toss at your feet,
+# hold to THROW_CHARGE_TICKS for a full-strength throw. Distance, time in the
+# air and arc height all scale together, because a short toss that hung in the
+# air as long as a long one reads as floating.
 #
 # Only one rock exists at a time. That is the throttle: there is no cooldown
 # timer, you simply cannot throw again until the previous rock is gone.
 module Rock
   def self.update args
-    spawn args if throwing? args
+    select args
+    charge args
 
     return unless args.state.rock
 
@@ -22,21 +32,61 @@ module Rock
     end
   end
 
-  # A throw is allowed only when no rock is in play.
-  def self.throwing? args
-    return false if args.state.rock
-
-    args.inputs.keyboard.key_down.space
+  # 1 and 2 pick which throwable is in hand. Written out rather than looped
+  # over a key table: there are two kinds, and naming them plainly is easier to
+  # read than the indirection that would let there be five.
+  def self.select args
+    args.state.throwable_index ||= 0
+    args.state.throwable_index = 0 if args.inputs.keyboard.key_down.one
+    args.state.throwable_index = 1 if args.inputs.keyboard.key_down.two
   end
 
-  def self.spawn args
+  # Winds a throw up while the key is held and releases it on key-up.
+  #
+  # `charging_since` is a plain tick number in state rather than a field on an
+  # entity, so it survives a hot-reload without a schema migration -- the same
+  # reason resolved_regions is a list of symbols.
+  def self.charge args
+    # A throw is allowed only when no rock is in play, so a wind-up started
+    # while one is still in the air is dropped rather than queued.
+    if args.state.rock
+      args.state.charging_since = nil
+      return
+    end
+
+    if args.inputs.keyboard.key_down.space
+      args.state.charging_since = args.state.tick_count
+    elsif args.state.charging_since && args.inputs.keyboard.key_up.space
+      spawn args, charge_progress(args)
+      args.state.charging_since = nil
+    end
+  end
+
+  # How wound up the current throw is, 0.0 to 1.0. Zero when nothing is being
+  # charged, so a released throw always has a strength to read.
+  def self.charge_progress args
+    return 0.0 unless args.state.charging_since
+
+    held = args.state.tick_count - args.state.charging_since
+
+    (held.to_f / Config::THROW_CHARGE_TICKS).clamp 0.0, 1.0
+  end
+
+  def self.lerp low, high, t
+    low + ((high - low) * t)
+  end
+
+  def self.spawn args, strength
     player = args.state.player
 
+    reach_x     = lerp Config::THROW_DISTANCE_X_MIN, Config::THROW_DISTANCE_X_MAX, strength
+    reach_depth = lerp Config::THROW_DISTANCE_DEPTH_MIN, Config::THROW_DISTANCE_DEPTH_MAX, strength
+
     # The facing is the player's last movement direction, which may be
-    # diagonal. Scaling each axis by its own distance constant keeps the throw
-    # feeling even despite x and depth being different units.
-    target_x     = player.x + (player.facing_x * Config::THROW_DISTANCE_X)
-    target_depth = player.depth + (player.facing_depth * Config::THROW_DISTANCE_DEPTH)
+    # diagonal. Scaling each axis by its own distance keeps the throw feeling
+    # even despite x and depth being different units.
+    target_x     = player.x + (player.facing_x * reach_x)
+    target_depth = player.depth + (player.facing_depth * reach_depth)
 
     args.state.rock = args.state.new_entity(:rock) do |rock|
       rock.w  = Config::ROCK_W
@@ -47,8 +97,8 @@ module Rock
       rock.origin_x     = player.x
       rock.origin_depth = player.depth
 
-      # Kept inside the stage so a throw at the edge cannot strand the enemy
-      # walking toward somewhere it can never reach.
+      # Kept inside the stage so a throw at the edge cannot startle the
+      # creature toward somewhere it can never reach.
       rock.target_x     = target_x.clamp 0, Config::SCREEN_W
       rock.target_depth = World.clamp_depth target_depth
 
@@ -58,6 +108,16 @@ module Rock
       rock.mode        = :flying
       rock.landed_at   = 0
       rock.launched_at = args.state.tick_count
+
+      # Fixed at launch, so switching what is in hand mid-flight cannot change
+      # what the rock already in the air is going to do when it lands.
+      rock.kind_index = args.state.throwable_index || 0
+
+      # Time in the air and arc height are fixed at launch and carried on the
+      # rock, so a constant retuned mid-flight cannot warp a throw already
+      # under way.
+      rock.flight_ticks = lerp Config::THROW_FLIGHT_TICKS_MIN, Config::THROW_FLIGHT_TICKS_MAX, strength
+      rock.arc_height   = lerp Config::ROCK_ARC_HEIGHT_MIN, Config::ROCK_ARC_HEIGHT_MAX, strength
     end
   end
 
@@ -66,7 +126,7 @@ module Rock
 
     # Progress through the flight, 0.0 at launch to 1.0 on landing.
     elapsed = args.state.tick_count - rock.launched_at
-    t       = (elapsed.to_f / Config::THROW_FLIGHT_TICKS).clamp 0.0, 1.0
+    t       = (elapsed.to_f / rock.flight_ticks).clamp 0.0, 1.0
 
     rock.x     = rock.origin_x + ((rock.target_x - rock.origin_x) * t)
     rock.depth = rock.origin_depth + ((rock.target_depth - rock.origin_depth) * t)
@@ -76,7 +136,9 @@ module Rock
     rock.mode      = :landed
     rock.landed_at = args.state.tick_count
 
-    Enemy.distract args, rock.x, rock.depth
+    effect = Throwables.at(rock.kind_index)[:effect]
+
+    Creature.react args, rock.x, rock.depth, effect
   end
 
   def self.advance_linger args
@@ -97,8 +159,8 @@ module Rock
     return 0 unless rock && rock.mode == :flying
 
     elapsed = args.state.tick_count - rock.launched_at
-    t       = (elapsed.to_f / Config::THROW_FLIGHT_TICKS).clamp 0.0, 1.0
+    t       = (elapsed.to_f / rock.flight_ticks).clamp 0.0, 1.0
 
-    Config::ROCK_ARC_HEIGHT * 4.0 * t * (1.0 - t)
+    rock.arc_height * 4.0 * t * (1.0 - t)
   end
 end
