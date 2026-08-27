@@ -321,6 +321,12 @@ module Config
   # animating yet.
   OWL_LINE_TICKS = 210
 
+  # Grown around the owl's drawn rect to make it clickable. At the far edge
+  # of the depth band the bird draws about 14x16 px, which is a miserable
+  # target; the padding is what makes asking it something feel reliable
+  # rather than fiddly.
+  OWL_CLICK_PADDING_PX = 10
+
   OWL_SPEECH_SIZE_PX = 18
 
   # Gap between the top of the owl's drawn rect and the baseline of its text,

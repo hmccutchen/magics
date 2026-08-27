@@ -87,8 +87,18 @@ These matter more here than they would on a settled codebase, precisely
   story-doc open question 4 (what activating a seam changes on screen) is
   unresolved, so only the rendering half of it exists: the region flips to
   truth and its ground and contents change tier.
-- Still to come: the owl, ambient life, world structure and traversal, the
-  ending. Also unresolved: story-doc question 5, how many pattern moments the
+- The owl is in, as a real entity in world-space (`owl.rb`) that follows the
+  player with slack rather than a fixed offset. It is airborne: its
+  (x, depth) is the ground it is above, and `lift` raises only where it is
+  drawn, so depth sorting is untouched.
+- The owl speaks (`owl_speech.rb`) on exactly two things: the player CLICKING
+  it, and the story having a hint to offer -- today only the doc's seam beat
+  ("once a seam is revealed, the owl hints at how to activate it"). It does
+  not chatter ambiently. Lines are keyed by stable id; text is PLACEHOLDER
+  apart from the doc's draft line. `owl_speech.rb` reads other modules'
+  public predicates and nothing reads it back -- deleting the file leaves the
+  game running unchanged.
+- Still to come: ambient life, world structure and traversal, the ending. Also unresolved: story-doc question 5, how many pattern moments the
   world holds and whether they share a rhythm.
 
 ## Git

@@ -3,25 +3,39 @@
 # What the owl says, and when.
 #
 # PLACEHOLDER TEXT. This slice exists to prove the trigger and display
-# mechanism, not to write the owl. One line, deliberately -- more triggers
-# arrive in the next step, and the real writing pass comes after both.
+# mechanism, not to write the owl. The real writing pass comes later; the
+# only real line here is the draft one from the story doc.
+#
+# --- What makes it speak ----------------------------------------------------
+#
+# Two things, and deliberately only two:
+#
+#   1. The player CLICKS it. He is asking, so it answers.
+#   2. The STORY has a hint to offer. Today there is exactly one such beat,
+#      and it comes straight from the story doc: "once a seam is revealed,
+#      the owl hints at how to activate it."
+#
+# It does NOT chatter at the world. The owl is "the part of a person that
+# already knows the truth" -- something spoken to, or something that speaks
+# when it has cause, not an ambient commentary track narrating your footsteps.
 #
 # --- How this stays decoupled -----------------------------------------------
 #
 # Nothing in this game emits events. Pattern, Seams, Regions and Creature are
 # all polled state. So rather than have them announce things to the owl, the
-# owl READS their existing public predicates every tick, remembers what it saw
-# last tick, and fires on the change.
+# owl READS their existing public predicates every tick and fires on the
+# change.
 #
 # That means this file depends on them and NOTHING depends on this file.
-# Delete owl_speech.rb and the rest of the game runs unchanged: no callbacks to
-# unregister, no other module holding a reference, no system checking whether
-# the owl has spoken before it will let the player proceed. The owl reacts to
-# the world; the world does not know it is there.
+# Delete owl_speech.rb and the rest of the game runs unchanged: no callbacks
+# to unregister, no other module holding a reference, no system checking
+# whether the owl has spoken before it will let the player proceed. The owl
+# reacts to the world; the world does not know it is there.
 #
 # It also cannot gate anything. A trigger only ever chooses a line to display.
-# Every pattern in this game is solvable by someone who never hears a word of
-# this.
+# Every pattern in this game stays solvable by someone who never hears a word
+# of this, which is the story doc's position too -- the owl hints, and the
+# player's capacity to understand it is what changes, not the world's rules.
 module OwlSpeech
   # Lines are keyed by a STABLE ID and referred to by that id everywhere else.
   # Trigger code names `:fool_reaches`, never the sentence, so the text can be
@@ -29,54 +43,121 @@ module OwlSpeech
   # a single trigger.
   #
   # `once` is the firing policy: true means it is heard at most once a
-  # playthrough, false means it may recur. Recurrence is the interesting case,
-  # since a handful of these lines are meant to repeat verbatim and land
-  # differently depending on what the player has lived through by then.
+  # playthrough, false means it may recur. Recurrence is the interesting case.
+  # Per the story doc, a small number of these lines are meant to repeat
+  # VERBATIM and land differently depending on what the player has lived
+  # through by then -- the words do not change, the reader does.
   LINES = {
+    # The draft line from the story doc, whose stated job is to hint toward
+    # activating a seam. Repeatable on purpose: it is the example the doc
+    # gives of a line that should reread as plainly true later.
     fool_reaches: {
       text: 'A fool reaches for goals no one has yet reached.',
+      once: false
+    },
+
+    # PLACEHOLDER, and marked as such in the text itself so it cannot be
+    # mistaken for writing. Stands in for whatever the owl says when asked
+    # with nothing pending.
+    nothing_pending: {
+      text: '(placeholder) The owl looks at you, and waits.',
       once: false
     }
   }
 
-  # Which line a trigger produces. A table rather than a case statement so a
-  # new trigger is a row, and so the id -> line mapping is one thing to read.
-  TRIGGERS = {
-    region_entered_unresolved: :fool_reaches
+  # Hints the STORY offers unprompted. A table rather than a case statement so
+  # a new beat is a row, and so the trigger -> line mapping is one thing to
+  # read. One entry today, because one beat is actually built.
+  STORY_TRIGGERS = {
+    seam_revealed: :fool_reaches
   }
 
+  # What a click produces when there is nothing pending to hint about.
+  IDLE_LINE = :nothing_pending
+
   def self.update args
-    # Expiry runs BEFORE the trigger check, so a line ending on the very tick
+    # Expiry runs BEFORE anything else, so a line ending on the very tick
     # something fires does not swallow the new one.
     expire args
 
-    fired = detect_region_entry args
-    speak args, TRIGGERS[fired] if fired
+    # A click takes precedence over the world offering: the player asked, so
+    # answer him rather than saying something he did not ask for.
+    return if try_click args
+
+    try_story_hint args
   end
 
-  # --- Triggers -------------------------------------------------------------
+  # --- The player asking ----------------------------------------------------
 
-  # Fires on the tick the player crosses INTO a region whose truth he has not
-  # uncovered yet. Built entirely from Regions' existing public predicates.
-  def self.detect_region_entry args
-    was = args.state.owl_last_region
-    now = Regions.at(args.state.player.x, args.state.player.depth)[:name]
+  def self.try_click args
+    return false unless clicked_owl? args
 
-    args.state.owl_last_region = now
+    speak args, click_line(args)
+  end
 
-    # Standing somewhere is not entering it: on the first frame there is no
-    # previous region, and the player has not crossed anything yet.
-    return nil if was.nil?
-    return nil if now == was
+  # Hit testing happens in SCREEN space, which is the one place in this game
+  # that is correct. Everything else collides on the ground plane in
+  # (x, depth) because two things at different depths can overlap on screen
+  # while being most of the stage apart. A mouse click is not in the world at
+  # all, though -- it is a point on the picture -- so the honest target is the
+  # rectangle the owl is DRAWN in, lift included, since the bird the player is
+  # aiming at is the one up in the air.
+  def self.clicked_owl? args
+    click = args.inputs.mouse.click
+    return false unless click
 
-    # The wilds is permanently myth and can never be resolved, so "before it
-    # resolves" means nothing there. Crossing the uncovered corridor would
-    # otherwise trip this every time.
-    return nil if now == Regions::WILDS[:name]
+    owl = args.state.owl
+    return false unless owl
 
-    return nil if Regions.resolved? args, now
+    click.inside_rect? hit_rect(owl)
+  end
 
-    :region_entered_unresolved
+  def self.hit_rect owl
+    rect = World.place owl.x, owl.depth, owl.w, owl.h, owl.lift
+    pad  = Config::OWL_CLICK_PADDING_PX
+
+    {
+      x: rect[:x] - pad,
+      y: rect[:y] - pad,
+      w: rect[:w] + (pad * 2),
+      h: rect[:h] + (pad * 2)
+    }
+  end
+
+  # Asked while a seam is sitting revealed and unactivated, the owl gives the
+  # hint the story doc says it owes. Otherwise it has nothing to offer, and
+  # says so -- it does not invent a hint to fill the silence.
+  def self.click_line args
+    return STORY_TRIGGERS[:seam_revealed] if seam_awaiting_activation? args
+
+    IDLE_LINE
+  end
+
+  # A seam that has been revealed but whose region has not resolved. Built
+  # from the two modules' existing predicates -- neither learns the owl exists.
+  def self.seam_awaiting_activation? args
+    Seams.revealed_names(args).any? do |region|
+      !Regions.resolved?(args, region)
+    end
+  end
+
+  # --- The story offering ---------------------------------------------------
+
+  def self.try_story_hint args
+    seen = args.state.owl_seen_seams ||= []
+    now  = Seams.revealed_names args
+
+    return false if (now - seen).empty?
+
+    # The edge is consumed only once the line has actually LANDED. If the owl
+    # happened to be mid-sentence, the hint is not lost -- this simply tries
+    # again next tick and arrives the moment it can. A story hint is the one
+    # line worth not dropping; an idle remark is not, which is why the click
+    # path has no equivalent and is allowed to be ignored.
+    return false unless speak args, STORY_TRIGGERS[:seam_revealed]
+
+    args.state.owl_seen_seams = now.dup
+    true
   end
 
   # --- Saying it ------------------------------------------------------------
@@ -92,18 +173,22 @@ module OwlSpeech
     args.state.owl_line = nil
   end
 
+  # Returns whether the line actually landed, which is what lets a story hint
+  # hold its edge open until it does.
   def self.speak args, line_id
     # Ignore rather than interrupt. The owl finishing its thought reads calmer
     # than one talking over itself, and it costs no queue and no interrupt
-    # rules. The price is that an occasional better-timed line is dropped.
-    return if speaking? args
+    # rules.
+    return false if speaking? args
 
     line = LINES[line_id]
-    return if line[:once] && said?(args, line_id)
+    return false if line[:once] && said?(args, line_id)
 
     args.state.owl_line       = line_id
     args.state.owl_line_until = args.state.tick_count + Config::OWL_LINE_TICKS
     args.state.owl_said       = said_ids(args) + [line_id]
+
+    true
   end
 
   # Stored as a list of line ids rather than flags on the lines themselves,
@@ -126,7 +211,8 @@ module OwlSpeech
   #
   # Text tracks the owl through world space rather than sitting in a fixed
   # corner, because the owl is a thing in the world and its speech should read
-  # as coming from it.
+  # as coming from it. The story doc's "no UI or dialogue box telling the
+  # player so" restraint is the reason this stays a bare line of text.
   #
   # This draws into args.outputs.labels, a DIFFERENT collection from the
   # sprites everything else uses. Collections layer against each other
@@ -178,13 +264,13 @@ module OwlSpeech
   # instead -- the same stance Regions, Seams and Pattern take on their own
   # authored tables. Runs on load, and therefore on every hot-reload of this
   # file, which is when the tables are most likely to be mid-edit.
-  def self.assert_triggers_name_real_lines!
-    TRIGGERS.each do |trigger, line_id|
+  def self.assert_every_referenced_line_exists!
+    (STORY_TRIGGERS.values + [IDLE_LINE]).each do |line_id|
       next if LINES.key? line_id
 
-      raise "Trigger #{trigger} names line #{line_id}, which is not in LINES"
+      raise "Owl speech refers to line #{line_id}, which is not in LINES"
     end
   end
 
-  assert_triggers_name_real_lines!
+  assert_every_referenced_line_exists!
 end

@@ -49,12 +49,11 @@ module GameState
 
     # The owl's speech state. Plain values rather than entity fields, for the
     # same reason as the lists above: they survive a hot-reload without a
-    # schema bump. owl_last_region starts nil so the first frame counts as
-    # standing somewhere rather than entering it.
-    args.state.owl_last_region  = nil
-    args.state.owl_line         = nil
-    args.state.owl_line_until   = 0
-    args.state.owl_said         = []
+    # schema bump.
+    args.state.owl_line       = nil
+    args.state.owl_line_until = 0
+    args.state.owl_said       = []
+    args.state.owl_seen_seams = []
   end
 
   def self.clear_entities args
