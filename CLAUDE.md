@@ -70,6 +70,14 @@ These matter more here than they would on a settled codebase, precisely
   (PixelLab-generated). The walk cycle is a single SIDE VIEW used for all
   eight directions; the push poses are genuinely directional. Per-direction
   walk art is the biggest outstanding art gap.
+- Pushing is animated too: each push pose is a TWO-frame cycle (feet planted,
+  then mid-stride) on its own `PUSH_CYCLE_DISTANCE`, so he walks the crate
+  along instead of sliding it. The old `Player.push_bob` sine-bounce that
+  stood in for footfall is gone. `walk_distance` wraps on a common multiple
+  of both cycle lengths so neither skips a frame at the wrap.
+- `sprites/player/myth/pushing/south-west.png` is drawn but UNUSED: the base
+  set has no planted `south-west.png`, so `PUSH_POSES` still draws south-west
+  by mirroring south-east (which mirrors both frames, so it animates).
 - No jumping, no gravity -- this is a walking-based game.
 - Collision uses ground-plane footprint checks in world (x, depth) space,
   not screen-space.
@@ -83,12 +91,56 @@ These matter more here than they would on a settled codebase, precisely
   object that does not fit it; shifting that off reveals the mark, and pushing
   the matching object in reveals the region's seam. The ordering is enforced
   by objects blocking each other, not by a state machine.
-- Walking into a revealed seam is still a PLACEHOLDER for activation --
-  story-doc open question 4 (what activating a seam changes on screen) is
-  unresolved, so only the rendering half of it exists: the region flips to
-  truth and its ground and contents change tier.
-- Still to come: the owl, ambient life, world structure and traversal, the
-  ending. Also unresolved: story-doc question 5, how many pattern moments the
+- Story-doc question 4 is ANSWERED: a seam is an abstract object, not a door.
+  Activating one opens no path -- it steps the bit style up (8-bit to 16-bit)
+  for the character and the world around it. The fidelity system already
+  delivers exactly that, so the effect is built, not placeholder. What is
+  still a placeholder is the GESTURE: "walk into it" stands in until the real
+  activation action is decided (one condition in `Seams.check_activated`).
+- The bit-step is therefore ART-BLOCKED, not code-blocked. `Assets` declares
+  no `:truth` tier for anything, so a resolved region logs a fallback and the
+  player keeps his myth sprite. Ground colour is the only visible change
+  today. Gray-box solids (creature, pushables, rock, seam) are NOT tier-aware
+  at all -- `Renderer.push_solid` takes a fixed colour -- so they will only
+  step up once they are real sprites going through `Assets`.
+- The owl is in, as a real entity in world-space (`owl.rb`) that follows the
+  player with slack rather than a fixed offset. It is airborne: its
+  (x, depth) is the ground it is above, and `lift` raises only where it is
+  drawn, so depth sorting is untouched.
+- The owl uses real sprite art (myth tier) in three poses -- perched, soaring,
+  and a two-frame wingbeat -- east and west only, since it turns to look at
+  the traveller. The other six directions are drawn and sitting in
+  `sprites/owl/myth/`; switching one on is a row in `Assets::OWL_POSES`, not
+  new code. `foot_pad` is per pose there because the canvases are registered
+  differently; `figure_h` is shared, so the bird never changes size. The
+  wingbeat is on a TIMER, unlike the player's distance-driven walk cycle,
+  because a bird's beat rate has nothing to do with its ground speed.
+- Owl behaviour is a four-state machine: `:soaring` (the default -- glides
+  high, slack-follows the player), `:descending`, `:perched`, `:climbing`.
+  It lands only on pushables and the creature, NEVER the player, and it RIDES
+  what it lands on. Wingbeats are reserved for landing and taking off, so
+  catching up across open air is a glide. A perch ends on a randomised timer
+  or when the player walks far enough away -- following stays dominant.
+- `Assets` descriptors may now carry `height_px`, defaulting to
+  `CHARACTER_HEIGHT_PX`. Not everything is person-sized; the owl would
+  otherwise be drawn 90px tall. `Renderer.sprite_rect` is the one answer to
+  "where was this drawn", used by the renderer and by the owl's click target
+  and speech label so they cannot drift apart from the art.
+- The owl speaks (`owl_speech.rb`) on exactly two things: the player CLICKING
+  it, and the story having a hint to offer -- today only the doc's seam beat
+  ("once a seam is revealed, the owl hints at how to activate it"). It does
+  not chatter ambiently. Lines are keyed by stable id; text is PLACEHOLDER
+  apart from the doc's draft line. `owl_speech.rb` reads other modules'
+  public predicates and nothing reads it back -- deleting the file leaves the
+  game running unchanged.
+- Every line the owl speaks is logged to `args.state.owl_log` with the world
+  state at that moment (regions resolved, seams revealed, patterns completed,
+  where he stood, what tier he was drawn at). Context is recorded for a
+  future WRITING pass and changes nothing about what is said -- per the doc,
+  a repeated line stays verbatim and the reader changes around it. Toggle the
+  per-firing print with `Config::OWL_LOG_FIRINGS`; `OwlSpeech.dump $args`
+  prints the whole history from the console.
+- Still to come: ambient life, world structure and traversal, the ending. Also unresolved: story-doc question 5, how many pattern moments the
   world holds and whether they share a rhythm.
 
 ## Git

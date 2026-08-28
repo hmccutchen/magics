@@ -8,6 +8,8 @@ require 'app/player.rb'
 require 'app/seams.rb'
 require 'app/throwables.rb'
 require 'app/creature.rb'
+require 'app/owl.rb'
+require 'app/owl_speech.rb'
 require 'app/pushable.rb'
 require 'app/pattern.rb'
 require 'app/rock.rb'
@@ -43,9 +45,18 @@ module Main
     Seams.update args
     Creature.update args
 
+    # After Player, so the owl follows where he IS this frame rather than
+    # trailing a frame behind him.
+    Owl.update args
+
     # After Creature and Pushable, so an object landing this tick takes effect
     # starting next tick rather than being overwritten by their own steps.
     Rock.update args
+
+    # Genuinely last. A line fires against the world as it stands at the END
+    # of the frame, so a region resolved this tick is already resolved when
+    # the owl looks at it. It reads existing state; nothing reads it back.
+    OwlSpeech.update args
   end
 
   def render args
@@ -56,5 +67,9 @@ module Main
     Pattern.render args
 
     Renderer.draw args
+
+    # Draws into args.outputs.labels, which layers above every sprite whatever
+    # the order here, so this sits last simply because it is drawn last.
+    OwlSpeech.render args
   end
 end

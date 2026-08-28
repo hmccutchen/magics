@@ -19,10 +19,10 @@
 # We clear only our own keys rather than calling $gtk.reset, so this stays a
 # narrow, predictable action rather than an engine-wide restart.
 module GameState
-  VERSION = 19
+  VERSION = 22
 
   # Every args.state key that holds an entity built from Config defaults.
-  OWNED_KEYS = [:player, :seams, :pushables, :creature, :rock]
+  OWNED_KEYS = [:player, :seams, :pushables, :creature, :rock, :owl]
 
   def self.ensure_current! args
     return if args.state.schema_version == VERSION
@@ -46,6 +46,14 @@ module GameState
     args.state.revealed_seams   = []
     args.state.charging_since   = nil
     args.state.throwable_index  = 0
+
+    # The owl's speech state. Plain values rather than entity fields, for the
+    # same reason as the lists above: they survive a hot-reload without a
+    # schema bump.
+    args.state.owl_line       = nil
+    args.state.owl_line_until = 0
+    args.state.owl_log        = []
+    args.state.owl_seen_seams = []
   end
 
   def self.clear_entities args
@@ -54,6 +62,7 @@ module GameState
     args.state.pushables = nil
     args.state.creature  = nil
     args.state.rock      = nil
+    args.state.owl       = nil
   end
 
   def self.log_reset args

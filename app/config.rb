@@ -55,6 +55,12 @@ module Config
   # across tiers by construction.
   WALK_CYCLE_DISTANCE = 160.0
 
+  # The same, for the push walk, which is its own cycle with its own feel --
+  # shorter, because the push cycle is only two frames and a long one leaves
+  # him holding each pose long enough to look stuck. Separate from the walk so
+  # the two cadences can be tuned against each other by eye.
+  PUSH_CYCLE_DISTANCE = 84.0
+
   # Footprint: the entity's box on the GROUND PLANE, used for collision.
   # FW is horizontal in pixels; FD is depth in world units. This is deliberately
   # not the same as the drawn rectangle -- collision happens in game space, and
@@ -202,19 +208,6 @@ module Config
   # drawn box across the stage.
   PUSH_LAG_MAX = 12.0
 
-  # The push pose is a single held frame, so without this he slides across the
-  # ground with no sign of effort. A small rise and fall gives the movement a
-  # footfall to read against.
-  #
-  # Peak height in screen pixels at full scale. Stopgap until push-walk art
-  # exists, at which point this and Player.push_bob both go.
-  PUSH_BOB_PX = 3
-
-  # Footfalls per full walk cycle. Two, because a cycle is a left and a right
-  # step -- keeping it expressed in steps rather than as a raw frequency means
-  # it stays correct if WALK_CYCLE_DISTANCE is retuned.
-  PUSH_BOB_STEPS = 2
-
   # --- Throw / rock ---------------------------------------------------------
   #
   # The player's only "action". It never harms the creature -- it just makes a
@@ -267,6 +260,128 @@ module Config
   SOCKET_TOLERANCE_X     = 26
   SOCKET_TOLERANCE_DEPTH = 18.0
 
+  # --- The owl --------------------------------------------------------------
+  #
+  # It is NOT glued to a fixed offset. It perches, lets the player walk off,
+  # then flies to catch up -- so it is usually ahead of or behind him rather
+  # than beside him, which is the whole character of the thing.
+
+  # Drawn height of the owl's figure, in pixels at full scale. The owl is the
+  # first thing in this world that is not person-sized, so it carries its own
+  # target rather than sharing CHARACTER_HEIGHT_PX. Tune this if it reads
+  # wrong beside the traveller.
+  OWL_HEIGHT_PX = 34
+
+  # Footprint. The owl collides with nothing -- it is in the air -- so this is
+  # only used to keep its anchor a sensible distance from the screen edge.
+  OWL_FW = 22
+  OWL_FD = 16
+
+  # Where it wants to be relative to the player: behind him along x (mirrored
+  # by his heading, so it swaps sides when he turns) and slightly further into
+  # the scene, so it sits above and behind rather than blocking what he faces.
+  OWL_FOLLOW_OFFSET_X     = 70
+  OWL_FOLLOW_OFFSET_DEPTH = 26.0
+
+  # How far the anchor may drift before the owl bothers to move. This is what
+  # makes it a companion instead of a cursor: below this it simply sits there
+  # while the player mills about.
+  OWL_SLACK_RADIUS = 130.0
+
+  # Close enough to call it arrived and perch. Must exceed OWL_SPEED or it
+  # oversteps every frame and orbits the anchor forever -- asserted in owl.rb.
+  OWL_ARRIVE_DISTANCE = 8.0
+
+  # Faster than the player, because it has to close a gap he is still opening.
+  OWL_SPEED        = 4.6
+  OWL_ACCELERATION = 0.14
+
+  # Eases down over the last stretch so it settles onto the perch instead of
+  # stopping dead, floored so the curve cannot creep toward zero.
+  OWL_SLOWDOWN_DISTANCE = 60.0
+  OWL_MIN_SPEED         = 0.6
+
+  # Drawn height above the ground plane. The owl does not stand on the floor,
+  # so its (x, depth) is the point it is ABOVE and this raises the sprite off
+  # it -- the same mechanism the thrown rock uses to look airborne while still
+  # sorting by where it is on the ground.
+  #
+  # Where it lives: high up, riding above the traveller. There is no constant
+  # for the perched height, because a perched owl sits on top of whatever it
+  # landed on and takes its height from that.
+  OWL_SOAR_LIFT = 168
+
+  # --- Deciding to land -----------------------------------------------------
+  #
+  # It comes down onto things in the world -- a crate, the deer -- never onto
+  # the traveller. Both timers are randomised the way the creature's grazing
+  # is, so the rhythm does not come out metronomic.
+
+  OWL_SOAR_TICKS_MIN  = 420
+  OWL_SOAR_TICKS_MAX  = 900
+
+  OWL_PERCH_TICKS_MIN = 240
+  OWL_PERCH_TICKS_MAX = 640
+
+  # How near the TRAVELLER a thing has to be to be worth landing on. Measured
+  # from him rather than from the owl so it never peels off across the map to
+  # sit on something he has already walked away from.
+  OWL_PERCH_REACH = 320.0
+
+  # Coming down and going back up are slower than crossing open air, so a
+  # landing reads as a landing rather than a dive.
+  OWL_LANDING_SPEED = 2.6
+
+  # Close enough, in drawn pixels, for the descent to count as finished. The
+  # lift eases asymptotically, so without a tolerance it would never arrive.
+  OWL_LIFT_ARRIVED_PX = 3.0
+
+  # How quickly the drawn height eases between the two, as a fraction of the
+  # remaining gap per frame. Kept well below 1 so it rises and drops smoothly
+  # rather than snapping the moment the mode flips.
+  OWL_LIFT_EASE = 0.08
+
+  # Ticks each half of the wingbeat is held for.
+  #
+  # Deliberately a TIMER, unlike the player's walk cycle, which is driven by
+  # ground covered so his feet cannot slide. Wings are not feet: a bird's beat
+  # rate has nothing to do with how fast it is crossing the ground, and a
+  # slow-drifting owl driven by distance would flap in slow motion.
+  OWL_FLAP_TICKS = 8
+
+  # How far past the owl the player must be before it turns to look the other
+  # way. Without a deadband the owl would flick between facings every frame
+  # while he walks along its x.
+  OWL_FACING_DEADBAND_PX = 18
+
+  # --- What the owl says ----------------------------------------------------
+
+  # How long one line stays on screen. A count of ticks rather than a fade
+  # state machine -- the owl speaks rarely, and there is nothing here worth
+  # animating yet.
+  OWL_LINE_TICKS = 210
+
+  # Grown around the owl's drawn rect to make it clickable. At the far edge
+  # of the depth band the bird draws about 14x16 px, which is a miserable
+  # target; the padding is what makes asking it something feel reliable
+  # rather than fiddly.
+  # Prints one record per line the owl speaks, so the context captured at each
+  # firing can be read in the log. A debug aid for the writing pass, not a
+  # player-facing feature -- switch it off the way SHOW_REGIONS is.
+  OWL_LOG_FIRINGS = true
+
+  OWL_CLICK_PADDING_PX = 10
+
+  OWL_SPEECH_SIZE_PX = 18
+
+  # Gap between the top of the owl's drawn rect and the baseline of its text,
+  # so the line sits above the bird rather than across it.
+  OWL_SPEECH_RISE_PX = 14
+
+  # Closest the text may come to the screen edge. A line spoken near the wall
+  # slides along the owl rather than running off-stage.
+  OWL_SPEECH_MARGIN = 12
+
   # --- Gray-box palette -----------------------------------------------------
   # Plain [r, g, b] arrays. Splatted into render hashes by Renderer.
 
@@ -279,6 +394,9 @@ module Config
   COLOR_SEAM       = [138, 210, 196]
   COLOR_CREATURE   = [176, 92, 162]
   COLOR_ROCK       = [206, 206, 214]
+  # Deliberately unlike every other colour here. Nothing else on screen speaks,
+  # and when something else eventually does, the owl must not read as it.
+  COLOR_OWL_SPEECH = [236, 226, 198]
 
   # One per Throwables::KINDS entry, in the same order. Colour is how the two
   # are told apart until there is art for them.

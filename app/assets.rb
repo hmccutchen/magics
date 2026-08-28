@@ -33,12 +33,27 @@ module Assets
     }
   }
 
-  # The push poses share a canvas, figure height and foot padding, so they are
-  # declared from one shape rather than seven copies of the same four numbers.
+  # The push walk. Two frames per direction: the traveller with his feet
+  # planted, and the same traveller mid-stride. Alternating them is what makes
+  # him WALK the crate along instead of sliding it while standing still.
   #
-  # figure_h is 26 for all of them even though south-east measures 25 -- the
-  # walk frames vary the same way and use a single value, because a per-file
-  # figure height would resize the character by a pixel as he turned.
+  # These share a canvas, figure height and foot padding, so they are declared
+  # from one shape rather than sixteen copies of the same four numbers.
+  #
+  # figure_h is 26 for all of them even though the individual frames measure
+  # 25 to 27 -- the walk frames vary the same way and use a single value,
+  # because a per-file figure height would resize the character by a pixel as
+  # he turned or as his legs passed.
+  #
+  # Frame order matters: planted first, so a push that begins from standing
+  # starts on the pose he was already holding rather than snapping into a
+  # stride.
+  #
+  # There is no south-west here. The base set never had one, and PUSH_POSES in
+  # player.rb draws it by mirroring south-east -- which mirrors both frames, so
+  # south-west animates like everything else. `pushing/south-west.png` is drawn
+  # and on disk but unused; giving it a real asset needs a matching planted
+  # frame beside it.
   PUSH_POSE_FILES = {
     player_push_north:      'north.png',
     player_push_north_east: 'north-east.png',
@@ -53,11 +68,67 @@ module Assets
     ASSETS[name] = {
       myth: {
         dir: 'sprites/player/myth',
-        files: [file],
+        files: [file, "pushing/#{file}"],
         canvas_w: 32,
         canvas_h: 32,
         figure_h: 26,
         foot_pad: 3
+      }
+    }
+  end
+
+  # The owl. Two facings only -- it turns to look at the traveller, and he is
+  # beside it rather than above or below it, so east and west are the poses
+  # that ever get asked for. The other six directions are drawn and sitting in
+  # the same folders; switching one on is a row here, not new code.
+  #
+  # Three poses, because the owl is in three visibly different situations:
+  # perched on something, gliding above the traveller, and beating its wings
+  # to get down to a perch or back up off one. Flight is the only animated
+  # one, and it is a two-frame beat built from files in DIFFERENT folders --
+  # which is why `dir` stops at the tier and the folder is part of each
+  # filename. Order matters: wings down, then wings up.
+  #
+  # foot_pad is PER POSE, because these canvases are registered differently:
+  # the soaring bird sits 8 rows off the bottom where the perched one sits 4.
+  # That is safe here only because the poses never share an animation cycle --
+  # a soaring owl does not flap, so the two are never alternated and the
+  # difference cannot show up as a jitter. It is corrected per pose instead,
+  # so each one lands at the height it is supposed to.
+  #
+  # figure_h is ONE value across all of them, unlike foot_pad. It sets the
+  # scale, so varying it would resize the bird as it changed pose. 40 is the
+  # perched body; the soaring figure is shorter and much wider, and is
+  # supposed to look that way.
+  OWL_POSES = {
+    owl_perched_east: { files: ['idle/east.png'],    foot_pad: 4 },
+    owl_perched_west: { files: ['idle/west.png'],    foot_pad: 4 },
+    owl_soaring_east: { files: ['soaring/east.png'], foot_pad: 8 },
+    owl_soaring_west: { files: ['soaring/west.png'], foot_pad: 8 },
+
+    owl_flying_east: {
+      files: ['flying/east.png', 'flapping-wings/east.png'],
+      foot_pad: 3
+    },
+    owl_flying_west: {
+      files: ['flying/west.png', 'flapping-wings/west.png'],
+      foot_pad: 3
+    }
+  }
+
+  OWL_POSES.each do |name, pose|
+    ASSETS[name] = {
+      myth: {
+        dir: 'sprites/owl/myth',
+        files: pose[:files],
+        canvas_w: 48,
+        canvas_h: 48,
+        figure_h: 40,
+        foot_pad: pose[:foot_pad],
+
+        # An owl, not a person. This is the number to tune if it reads wrong
+        # against the traveller.
+        height_px: Config::OWL_HEIGHT_PX
       }
     }
   end
@@ -134,9 +205,18 @@ module Assets
 
   # Drawn canvas size at full scale, derived so the FIGURE lands at
   # Config::CHARACTER_HEIGHT_PX regardless of how the tier was authored.
+  # Drawn canvas size at full scale, derived so the FIGURE lands at the
+  # descriptor's target height regardless of how the tier was authored.
+  #
+  # `height_px` is per asset because not everything in this world is
+  # person-sized. It defaults to CHARACTER_HEIGHT_PX, so anything that does not
+  # say otherwise -- the player and every pose he holds -- is unaffected.
+  # Without it an owl would be drawn ninety pixels tall and stand eye to eye
+  # with the traveller.
   def self.draw_size name, tier
     found  = descriptor name, tier
-    factor = Config::CHARACTER_HEIGHT_PX.to_f / found[:figure_h]
+    target = found[:height_px] || Config::CHARACTER_HEIGHT_PX
+    factor = target.to_f / found[:figure_h]
 
     [found[:canvas_w] * factor, found[:canvas_h] * factor]
   end
