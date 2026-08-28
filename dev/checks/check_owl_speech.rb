@@ -2,6 +2,8 @@ require_relative '../../app/config.rb'
 require_relative '../../app/world.rb'
 require_relative '../../app/regions.rb'
 require_relative '../../app/seams.rb'
+require_relative '../../app/pushable.rb'
+require_relative '../../app/pattern.rb'
 require_relative '../../app/owl_speech.rb'
 
 # Minimal stand-ins for DragonRuby's args, which is an open structure. Only
@@ -18,18 +20,49 @@ class FakeOwl
   end
 end
 
+# The owl records where the player stood and how much of the world he had
+# taken apart, so both have to exist for a firing to be logged.
+class FakePlayer
+  attr_accessor :x, :depth
+
+  def initialize
+    @x     = 100        # :fern_hollow
+    @depth = 40.0
+  end
+end
+
+class FakePushable
+  attr_accessor :x, :depth
+
+  def initialize x, depth
+    @x     = x
+    @depth = depth
+  end
+end
+
 class FakeState
   attr_accessor :resolved_regions, :revealed_seams, :seams, :tick_count,
-                :owl, :owl_line, :owl_line_until, :owl_said, :owl_seen_seams
+                :owl, :player, :pushables,
+                :owl_line, :owl_line_until, :owl_log, :owl_seen_seams
 
   def initialize
     @resolved_regions = []
     @revealed_seams   = []
     @tick_count       = 0
     @owl              = FakeOwl.new
+    @player           = FakePlayer.new
+    @pushables        = Pushable::PUSHABLES.map { |p| FakePushable.new p[:x], p[:depth] }
     @owl_line_until   = 0
-    @owl_said         = []
+    @owl_log          = []
     @owl_seen_seams   = []
+  end
+
+  # Seat the object that fits the socket, which is what "a pattern has been
+  # completed" means to Pattern.
+  def complete_the_pattern!
+    socket = Pattern::SOCKETS[0]
+    @pushables[socket[:filled_by]].x     = socket[:x]
+    @pushables[socket[:filled_by]].depth = socket[:depth]
   end
 end
 
@@ -152,12 +185,12 @@ check 'the doc\'s line', args.state.owl_line, :fool_reaches
 puts 'the hint is offered once, not every tick'
 args.shut_up!
 60.times { args.tick }
-check 'said exactly once', args.state.owl_said, [:fool_reaches]
+check 'said exactly once', OwlSpeech.firings(args, :fool_reaches).length, 1
 
 puts 'asking again while the seam is still unactivated repeats the hint'
 args.tick owl_centre(args)
 check 'the same line, verbatim', args.state.owl_line, :fool_reaches
-check 'both firings recorded',   args.state.owl_said, [:fool_reaches, :fool_reaches]
+check 'both firings recorded',   OwlSpeech.firings(args, :fool_reaches).length, 2
 
 puts 'once the seam is activated there is nothing left to hint'
 args.shut_up!
@@ -184,12 +217,69 @@ puts 'it finishes its thought rather than being interrupted'
 args = FakeArgs.new
 args.tick owl_centre(args)
 args.tick owl_centre(args)
-check 'one firing, not two', args.state.owl_said, [OwlSpeech::IDLE_LINE]
+check 'one firing, not two', args.state.owl_log.length, 1
 
 puts 'the line expires on its own'
 args.state.tick_count = args.state.owl_line_until
 OwlSpeech.expire args
 check 'silent again', OwlSpeech.speaking?(args), false
+
+puts 'every firing records what the player had lived through'
+args = FakeArgs.new
+args.tick owl_centre(args)
+first = args.state.owl_log.last
+check 'the line id',        first[:line],       OwlSpeech::IDLE_LINE
+check 'what set it off',    first[:trigger],    :clicked
+check 'which hearing',      first[:occurrence], 1
+check 'nothing resolved',   first[:regions_resolved],   []
+check 'nothing revealed',   first[:seams_revealed],     []
+check 'no patterns done',   first[:patterns_completed], 0
+check 'where he stood',     first[:standing_in], :fern_hollow
+check 'and his fidelity',   first[:player_tier], :myth
+
+puts 'a repeated line is logged again, against the world as it then stands'
+args = FakeArgs.new
+args.state.player.x     = 900               # :east_clearing
+args.state.player.depth = 40.0
+Seams.reveal! args, :far_stand
+args.tick                                   # the hint, offered unprompted
+early = args.state.owl_log.last
+check 'first hearing',        early[:occurrence],         1
+check 'nothing resolved yet', early[:regions_resolved],   []
+check 'no patterns done yet', early[:patterns_completed], 0
+check 'in the clearing',      early[:standing_in],        :east_clearing
+check 'drawn as myth',        early[:player_tier],        :myth
+
+# Now the player lives through some of the world: he completes the pattern,
+# admits the truth of a region, and walks into it -- so the very same words
+# land against a different world, and a different him.
+#
+# far_stand's seam is deliberately left UNACTIVATED, since that is what keeps
+# the hint applicable. fern_hollow is resolved directly as a fixture: it
+# stands in for a second seam elsewhere in the world, which the authored
+# SEAMS table does not hold yet.
+args.shut_up!
+args.state.complete_the_pattern!
+Regions.resolve! args, :fern_hollow
+args.state.player.x     = 100               # :fern_hollow, now resolved
+args.state.player.depth = 40.0
+args.tick owl_centre(args)
+
+late = args.state.owl_log.last
+check 'the same line, verbatim', late[:line], early[:line]
+check 'second hearing',          late[:occurrence], 2
+check 'more admitted',           late[:regions_resolved].length > early[:regions_resolved].length, true
+check 'a pattern completed',     late[:patterns_completed], 1
+check 'somewhere else',          late[:standing_in], :fern_hollow
+check 'and drawn as truth now',  late[:player_tier], :truth
+
+puts 'the log is chronological and inspectable'
+check 'both hearings kept', OwlSpeech.firings(args, early[:line]).length, 2
+check 'in the order heard',
+      OwlSpeech.firings(args, early[:line]).map { |e| e[:occurrence] }, [1, 2]
+
+puts 'a debug print of that history, for the eye rather than an assertion:'
+OwlSpeech.dump args
 
 puts 'text is kept on stage near the screen edges'
 wide = 400.0

@@ -52,7 +52,7 @@ module GameState
     # schema bump.
     args.state.owl_line       = nil
     args.state.owl_line_until = 0
-    args.state.owl_said       = []
+    args.state.owl_log        = []
     args.state.owl_seen_seams = []
   end
 

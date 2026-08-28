@@ -92,7 +92,7 @@ module OwlSpeech
   def self.try_click args
     return false unless clicked_owl? args
 
-    speak args, click_line(args)
+    speak args, click_line(args), :clicked
   end
 
   # Hit testing happens in SCREEN space, which is the one place in this game
@@ -154,7 +154,7 @@ module OwlSpeech
     # again next tick and arrives the moment it can. A story hint is the one
     # line worth not dropping; an idle remark is not, which is why the click
     # path has no equivalent and is allowed to be ignored.
-    return false unless speak args, STORY_TRIGGERS[:seam_revealed]
+    return false unless speak args, STORY_TRIGGERS[:seam_revealed], :seam_revealed
 
     args.state.owl_seen_seams = now.dup
     true
@@ -175,7 +175,7 @@ module OwlSpeech
 
   # Returns whether the line actually landed, which is what lets a story hint
   # hold its edge open until it does.
-  def self.speak args, line_id
+  def self.speak args, line_id, trigger
     # Ignore rather than interrupt. The owl finishing its thought reads calmer
     # than one talking over itself, and it costs no queue and no interrupt
     # rules.
@@ -184,27 +184,107 @@ module OwlSpeech
     line = LINES[line_id]
     return false if line[:once] && said?(args, line_id)
 
+    entry = context args, line_id, trigger
+
     args.state.owl_line       = line_id
     args.state.owl_line_until = args.state.tick_count + Config::OWL_LINE_TICKS
-    args.state.owl_said       = said_ids(args) + [line_id]
+    args.state.owl_log        = log(args) + [entry]
+
+    report entry if Config::OWL_LOG_FIRINGS
 
     true
   end
 
-  # Stored as a list of line ids rather than flags on the lines themselves,
-  # the same way Regions stores resolved_regions: hot-reload does NOT reset
-  # args.state, and anything held as a field forces a schema bump to retune.
-  # Symbols migrate for free.
+  # --- What the player had lived through -----------------------------------
   #
-  # A recurring line is appended EVERY time it fires, so this is already a
-  # chronological record of what was said rather than a set of what has been.
-  # That is what the next step hangs firing context off.
-  def self.said_ids args
-    args.state.owl_said ||= []
+  # Every firing is recorded with the state of the world at that moment. A
+  # recurring line is appended AGAIN each time, so the log is chronological
+  # rather than a set of what has been said.
+  #
+  # This does not change a word of what is said, and is not meant to. The
+  # story doc is explicit that a repeated line stays VERBATIM and the reader
+  # changes around it. The point of recording context is a future WRITING
+  # pass: it is how we will tell whether the second hearing of a line landed
+  # against a different world than the first, and therefore whether the line
+  # is carrying the weight it is supposed to.
+  #
+  # Deliberately a flat hash of plain values -- symbols, integers, arrays of
+  # symbols. No line objects, no authoring system, nothing that needs a schema
+  # bump to grow. Add a key when a new fact turns out to matter.
+
+  def self.context args, line_id, trigger
+    player = args.state.player
+
+    {
+      line:       line_id,
+      trigger:    trigger,
+      tick:       args.state.tick_count,
+      occurrence: firings(args, line_id).length + 1,
+
+      # Three different amounts of "lived through", worth telling apart: what
+      # he has admitted, what he has merely noticed, and how much of the world
+      # he has physically taken apart.
+      regions_resolved:   Regions.resolved_names(args).dup,
+      seams_revealed:     Seams.revealed_names(args).dup,
+      patterns_completed: patterns_completed(args),
+
+      # Where he stood, and the fidelity he was drawn at there. The tier is
+      # the story doc's own axis for why a repeated line lands differently --
+      # not the owl getting more honest, but him becoming able to hear it --
+      # so of everything here this is the value most likely to matter.
+      standing_in: Regions.at(player.x, player.depth)[:name],
+      player_tier: Regions.tier_at(args, player.x, player.depth)
+    }
+  end
+
+  def self.patterns_completed args
+    Pattern.regions.count { |region| Pattern.complete? args, region }
+  end
+
+  # Stored as plain hashes in a plain array rather than as entity fields, the
+  # same way Regions stores resolved_regions: hot-reload does NOT reset
+  # args.state, and anything held as an entity field forces a schema bump to
+  # retune. Plain values migrate for free.
+  def self.log args
+    args.state.owl_log ||= []
+  end
+
+  def self.firings args, line_id
+    log(args).select { |entry| entry[:line] == line_id }
   end
 
   def self.said? args, line_id
-    said_ids(args).include? line_id
+    !firings(args, line_id).empty?
+  end
+
+  # --- Inspecting it --------------------------------------------------------
+  #
+  # A debug print, not a tool. Two lines per firing, so the repeat entries for
+  # one line sit next to each other in the log and the differences between
+  # them are readable by eye -- which is the entire reason any of this is
+  # recorded.
+
+  def self.report entry
+    puts "[Owl] #{entry[:line]} ##{entry[:occurrence]} via #{entry[:trigger]} at tick #{entry[:tick]}"
+    puts "      lived through: resolved #{list entry[:regions_resolved]}" \
+         " | seams #{list entry[:seams_revealed]}" \
+         " | patterns #{entry[:patterns_completed]}" \
+         " | standing in #{entry[:standing_in]} drawn as #{entry[:player_tier]}"
+  end
+
+  def self.list values
+    values.empty? ? 'none' : values.join('+')
+  end
+
+  # Prints the whole history. Meant to be called by hand from the DragonRuby
+  # console -- `OwlSpeech.dump $args` -- when you want the shape of a
+  # playthrough rather than a running commentary on it.
+  def self.dump args
+    entries = log args
+
+    return puts('[Owl] nothing said yet') if entries.empty?
+
+    entries.each { |entry| report entry }
   end
 
   # --- Drawing --------------------------------------------------------------

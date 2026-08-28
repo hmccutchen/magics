@@ -106,6 +106,13 @@ These matter more here than they would on a settled codebase, precisely
   apart from the doc's draft line. `owl_speech.rb` reads other modules'
   public predicates and nothing reads it back -- deleting the file leaves the
   game running unchanged.
+- Every line the owl speaks is logged to `args.state.owl_log` with the world
+  state at that moment (regions resolved, seams revealed, patterns completed,
+  where he stood, what tier he was drawn at). Context is recorded for a
+  future WRITING pass and changes nothing about what is said -- per the doc,
+  a repeated line stays verbatim and the reader changes around it. Toggle the
+  per-firing print with `Config::OWL_LOG_FIRINGS`; `OwlSpeech.dump $args`
+  prints the whole history from the console.
 - Still to come: ambient life, world structure and traversal, the ending. Also unresolved: story-doc question 5, how many pattern moments the
   world holds and whether they share a rhythm.
 

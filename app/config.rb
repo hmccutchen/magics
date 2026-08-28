@@ -325,6 +325,11 @@ module Config
   # of the depth band the bird draws about 14x16 px, which is a miserable
   # target; the padding is what makes asking it something feel reliable
   # rather than fiddly.
+  # Prints one record per line the owl speaks, so the context captured at each
+  # firing can be read in the log. A debug aid for the writing pass, not a
+  # player-facing feature -- switch it off the way SHOW_REGIONS is.
+  OWL_LOG_FIRINGS = true
+
   OWL_CLICK_PADDING_PX = 10
 
   OWL_SPEECH_SIZE_PX = 18
