@@ -70,6 +70,14 @@ These matter more here than they would on a settled codebase, precisely
   (PixelLab-generated). The walk cycle is a single SIDE VIEW used for all
   eight directions; the push poses are genuinely directional. Per-direction
   walk art is the biggest outstanding art gap.
+- Pushing is animated too: each push pose is a TWO-frame cycle (feet planted,
+  then mid-stride) on its own `PUSH_CYCLE_DISTANCE`, so he walks the crate
+  along instead of sliding it. The old `Player.push_bob` sine-bounce that
+  stood in for footfall is gone. `walk_distance` wraps on a common multiple
+  of both cycle lengths so neither skips a frame at the wrap.
+- `sprites/player/myth/pushing/south-west.png` is drawn but UNUSED: the base
+  set has no planted `south-west.png`, so `PUSH_POSES` still draws south-west
+  by mirroring south-east (which mirrors both frames, so it animates).
 - No jumping, no gravity -- this is a walking-based game.
 - Collision uses ground-plane footprint checks in world (x, depth) space,
   not screen-space.

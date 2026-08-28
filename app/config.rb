@@ -55,6 +55,12 @@ module Config
   # across tiers by construction.
   WALK_CYCLE_DISTANCE = 160.0
 
+  # The same, for the push walk, which is its own cycle with its own feel --
+  # shorter, because the push cycle is only two frames and a long one leaves
+  # him holding each pose long enough to look stuck. Separate from the walk so
+  # the two cadences can be tuned against each other by eye.
+  PUSH_CYCLE_DISTANCE = 84.0
+
   # Footprint: the entity's box on the GROUND PLANE, used for collision.
   # FW is horizontal in pixels; FD is depth in world units. This is deliberately
   # not the same as the drawn rectangle -- collision happens in game space, and
@@ -201,19 +207,6 @@ module Config
   # Ceiling on the trail, so a restart or a hot-reload jump cannot fling the
   # drawn box across the stage.
   PUSH_LAG_MAX = 12.0
-
-  # The push pose is a single held frame, so without this he slides across the
-  # ground with no sign of effort. A small rise and fall gives the movement a
-  # footfall to read against.
-  #
-  # Peak height in screen pixels at full scale. Stopgap until push-walk art
-  # exists, at which point this and Player.push_bob both go.
-  PUSH_BOB_PX = 3
-
-  # Footfalls per full walk cycle. Two, because a cycle is a left and a right
-  # step -- keeping it expressed in steps rather than as a raw frequency means
-  # it stays correct if WALK_CYCLE_DISTANCE is retuned.
-  PUSH_BOB_STEPS = 2
 
   # --- Throw / rock ---------------------------------------------------------
   #

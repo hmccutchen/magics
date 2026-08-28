@@ -33,12 +33,27 @@ module Assets
     }
   }
 
-  # The push poses share a canvas, figure height and foot padding, so they are
-  # declared from one shape rather than seven copies of the same four numbers.
+  # The push walk. Two frames per direction: the traveller with his feet
+  # planted, and the same traveller mid-stride. Alternating them is what makes
+  # him WALK the crate along instead of sliding it while standing still.
   #
-  # figure_h is 26 for all of them even though south-east measures 25 -- the
-  # walk frames vary the same way and use a single value, because a per-file
-  # figure height would resize the character by a pixel as he turned.
+  # These share a canvas, figure height and foot padding, so they are declared
+  # from one shape rather than sixteen copies of the same four numbers.
+  #
+  # figure_h is 26 for all of them even though the individual frames measure
+  # 25 to 27 -- the walk frames vary the same way and use a single value,
+  # because a per-file figure height would resize the character by a pixel as
+  # he turned or as his legs passed.
+  #
+  # Frame order matters: planted first, so a push that begins from standing
+  # starts on the pose he was already holding rather than snapping into a
+  # stride.
+  #
+  # There is no south-west here. The base set never had one, and PUSH_POSES in
+  # player.rb draws it by mirroring south-east -- which mirrors both frames, so
+  # south-west animates like everything else. `pushing/south-west.png` is drawn
+  # and on disk but unused; giving it a real asset needs a matching planted
+  # frame beside it.
   PUSH_POSE_FILES = {
     player_push_north:      'north.png',
     player_push_north_east: 'north-east.png',
@@ -53,7 +68,7 @@ module Assets
     ASSETS[name] = {
       myth: {
         dir: 'sprites/player/myth',
-        files: [file],
+        files: [file, "pushing/#{file}"],
         canvas_w: 32,
         canvas_h: 32,
         figure_h: 26,

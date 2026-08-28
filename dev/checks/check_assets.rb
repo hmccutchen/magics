@@ -68,12 +68,16 @@ w, h = Assets.draw_size :player_walk, :myth
 check_close 'draw width',  w, 138.46
 check_close 'draw height', h, 138.46
 
-puts 'push poses are single held frames'
+puts 'push poses are two-frame cycles, and progress moves through them'
+#
+# They used to be single held frames, with a faked sine bob standing in for
+# footfall. The stride art replaced both, so progress must now actually
+# advance -- a pose that ignored it would put him back to sliding.
 Assets::PUSH_POSE_FILES.each_key do |name|
-  check "#{name} path count", Assets.descriptor(name, :myth)[:paths].length, 1
-  check "#{name} progress is ignored",
+  check "#{name} path count", Assets.descriptor(name, :myth)[:paths].length, 2
+  check "#{name} progress advances",
         Assets.frame_path(name, :myth, 0.0) == Assets.frame_path(name, :myth, 0.99),
-        true
+        false
 end
 
 check_close 'push foot pad ratio', Assets.foot_pad_ratio(:player_push_east, :myth), 3.0 / 32

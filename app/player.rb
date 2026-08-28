@@ -118,7 +118,7 @@ module Player
       entity: player,
       sprite: pose[0],
       flip: pose[1],
-      lift: push_bob(player)
+      progress: cycle_progress(args, Config::PUSH_CYCLE_DISTANCE)
     }
   end
 
@@ -134,21 +134,15 @@ module Player
   # Scaled by depth so the bob shrinks along with him as he walks away. The
   # thrown rock's arc deliberately does NOT do this, because its height reads
   # as distance travelled rather than as part of the figure.
-  def self.push_bob player
-    progress = player.walk_distance / Config::WALK_CYCLE_DISTANCE
-    hump     = Math.sin(progress * Math::PI * Config::PUSH_BOB_STEPS).abs
-
-    hump * Config::PUSH_BOB_PX * World.scale(player.depth)
-  end
-
-  # Position through the walk cycle, 0.0 to 1.0. Standing still reports 0.0
-  # rather than holding its last value, so an idle player returns to the
-  # neutral frame instead of freezing mid-stride.
-  def self.cycle_progress args
+  # Normalised 0.0..1.0 through an animation cycle, from ground covered rather
+  # than from a timer -- which is what locks the feet to walking speed, so a
+  # slower push animates slower with nothing to tune. `cycle_distance` is the
+  # ground one full cycle covers, and differs between walking and pushing.
+  def self.cycle_progress args, cycle_distance = Config::WALK_CYCLE_DISTANCE
     player = args.state.player
     return 0.0 unless player.moving
 
-    player.walk_distance / Config::WALK_CYCLE_DISTANCE
+    (player.walk_distance % cycle_distance) / cycle_distance
   end
 
   def self.move args
@@ -227,7 +221,13 @@ module Player
     moved_depth = player.depth - start_depth
     moved       = Math.sqrt((moved_x * moved_x) + (moved_depth * moved_depth))
 
-    cycle = Config::WALK_CYCLE_DISTANCE
+    # Wrapped to a COMMON MULTIPLE of every cycle distance, not to the walk
+    # cycle alone. Wrapping at the walk cycle would land mid-stride for the
+    # push cycle, which is a different length, and skip a frame every time it
+    # came round. The product is the cheapest common multiple to state and
+    # needs no explanation beyond this one; if a third cycle length ever
+    # appears, it belongs in here too.
+    cycle = Config::WALK_CYCLE_DISTANCE * Config::PUSH_CYCLE_DISTANCE
     player.walk_distance = (player.walk_distance + moved) % cycle
   end
 
