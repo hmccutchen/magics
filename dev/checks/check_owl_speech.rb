@@ -2,21 +2,27 @@ require_relative '../../app/config.rb'
 require_relative '../../app/world.rb'
 require_relative '../../app/regions.rb'
 require_relative '../../app/seams.rb'
+require_relative '../../app/assets.rb'
+require_relative '../../app/renderer.rb'
+require_relative '../../app/owl.rb'
 require_relative '../../app/pushable.rb'
 require_relative '../../app/pattern.rb'
 require_relative '../../app/owl_speech.rb'
 
 # Minimal stand-ins for DragonRuby's args, which is an open structure. Only
 # the parts OwlSpeech actually reads are modelled.
+# The owl is drawn from art now, so it has no w/h of its own -- its size comes
+# from the tier descriptor. Only the fields OwlSpeech and Owl.drawable read.
 class FakeOwl
-  attr_accessor :x, :depth, :w, :h, :lift
+  attr_accessor :x, :depth, :lift, :mode, :facing, :flap_ticks
 
   def initialize
-    @x    = 640
-    @depth = 100.0
-    @w    = Config::OWL_W
-    @h    = Config::OWL_H
-    @lift = Config::OWL_PERCH_LIFT
+    @x          = 640
+    @depth      = 100.0
+    @lift       = Config::OWL_PERCH_LIFT
+    @mode       = :perched
+    @facing     = :east
+    @flap_ticks = 0
   end
 end
 
@@ -129,8 +135,7 @@ end
 
 # The centre of the owl's drawn rect, which is what a player aims at.
 def owl_centre args
-  owl  = args.state.owl
-  rect = World.place owl.x, owl.depth, owl.w, owl.h, owl.lift
+  rect = Renderer.sprite_rect args, Owl.drawable(args)
 
   FakeClick.new rect[:x] + (rect[:w] / 2), rect[:y] + (rect[:h] / 2)
 end
@@ -169,7 +174,7 @@ puts 'the padding makes it a fair target'
 args   = FakeArgs.new
 owl    = args.state.owl
 owl.depth = Config::DEPTH_FAR          # smallest the bird ever draws
-rect   = World.place owl.x, owl.depth, owl.w, owl.h, owl.lift
+rect   = Renderer.sprite_rect args, Owl.drawable(args)
 just_outside = FakeClick.new rect[:x] - (Config::OWL_CLICK_PADDING_PX - 1), rect[:y]
 args.tick just_outside
 check 'a near miss still counts', OwlSpeech.speaking?(args), true

@@ -1,11 +1,13 @@
 require_relative '../../app/config.rb'
 require_relative '../../app/world.rb'
+require_relative '../../app/regions.rb'
+require_relative '../../app/assets.rb'
 require_relative '../../app/owl.rb'
 
 # Owl.update needs args.state and the player; the follow maths itself does not,
 # so the pure parts are checked directly against plain structs.
 Player = Struct.new(:x, :depth, :heading_x)
-Owl_   = Struct.new(:x, :depth, :speed, :mode, :lift)
+Owl_   = Struct.new(:x, :depth, :speed, :mode, :lift, :facing, :flap_ticks)
 
 $failures = 0
 
@@ -68,6 +70,52 @@ owl.mode = :perched
 400.times { Owl.ease_lift owl }
 check 'never drops below the perch height', owl.lift >= Config::OWL_PERCH_LIFT, true
 close 'returns to the perch height', owl.lift, Config::OWL_PERCH_LIFT, 0.5
+
+
+puts 'it turns to look at the traveller, and holds a side profile'
+owl = Owl_.new 640, 100.0, 0.0, :perched, 0, :east, 0
+Owl.face_player owl, Player.new(200, 100.0, 1)
+check 'looks west when he is to the west', owl.facing, :west
+Owl.face_player owl, Player.new(1100, 100.0, 1)
+check 'looks east when he is to the east', owl.facing, :east
+
+puts 'the deadband stops it flicking as he walks along its x'
+owl.facing = :east
+Owl.face_player owl, Player.new(640 - (Config::OWL_FACING_DEADBAND_PX - 1), 100.0, 1)
+check 'holds its facing for a small offset', owl.facing, :east
+Owl.face_player owl, Player.new(640 - (Config::OWL_FACING_DEADBAND_PX + 1), 100.0, 1)
+check 'turns for a clear one', owl.facing, :west
+
+puts 'the wingbeat runs in the air and resets on landing'
+owl = Owl_.new 0, 0.0, 0.0, :flying, 0, :east, 0
+Config::OWL_FLAP_TICKS.times { Owl.beat_wings owl }
+check 'first half of the stroke', Owl.flap_progress(owl) >= 0.5, true
+check 'still one cycle',          Owl.flap_progress(owl) < 1.0,  true
+
+Owl.beat_length.times { Owl.beat_wings owl }
+check 'wraps rather than growing', Owl.flap_progress(owl), 0.5
+
+owl.mode = :perched
+Owl.beat_wings owl
+check 'a perched owl holds one pose', owl.flap_ticks, 0
+
+puts 'each pose it can be in resolves to art that exists'
+[:perched, :flying].each do |mode|
+  [:east, :west].each do |facing|
+    owl.mode   = mode
+    owl.facing = facing
+    name = Owl.sprite_name owl
+    paths = Assets.descriptor(name, :myth)[:paths]
+    check "#{name} files exist",
+          paths.all? { |path| File.exist? File.join(__dir__, '../..', path) }, true
+  end
+end
+
+puts 'the owl is drawn owl-sized, not person-sized'
+w, h = Assets.draw_size :owl_perched_east, :myth
+check 'shorter than the traveller', h < Config::CHARACTER_HEIGHT_PX, true
+check 'and the player is unaffected',
+      Assets.draw_size(:player_walk, :myth)[1] > h, true
 
 puts
 puts $failures.zero? ? 'check_owl: PASSED' : "check_owl: #{$failures} FAILED"

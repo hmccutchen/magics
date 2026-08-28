@@ -273,8 +273,14 @@ module Config
   # then flies to catch up -- so it is usually ahead of or behind him rather
   # than beside him, which is the whole character of the thing.
 
-  OWL_W  = 26
-  OWL_H  = 30
+  # Drawn height of the owl's figure, in pixels at full scale. The owl is the
+  # first thing in this world that is not person-sized, so it carries its own
+  # target rather than sharing CHARACTER_HEIGHT_PX. Tune this if it reads
+  # wrong beside the traveller.
+  OWL_HEIGHT_PX = 34
+
+  # Footprint. The owl collides with nothing -- it is in the air -- so this is
+  # only used to keep its anchor a sensible distance from the screen edge.
   OWL_FW = 22
   OWL_FD = 16
 
@@ -313,6 +319,19 @@ module Config
   # remaining gap per frame. Kept well below 1 so it rises and drops smoothly
   # rather than snapping the moment the mode flips.
   OWL_LIFT_EASE = 0.08
+
+  # Ticks each half of the wingbeat is held for.
+  #
+  # Deliberately a TIMER, unlike the player's walk cycle, which is driven by
+  # ground covered so his feet cannot slide. Wings are not feet: a bird's beat
+  # rate has nothing to do with how fast it is crossing the ground, and a
+  # slow-drifting owl driven by distance would flap in slow motion.
+  OWL_FLAP_TICKS = 8
+
+  # How far past the owl the player must be before it turns to look the other
+  # way. Without a deadband the owl would flick between facings every frame
+  # while he walks along its x.
+  OWL_FACING_DEADBAND_PX = 18
 
   # --- What the owl says ----------------------------------------------------
 
@@ -354,8 +373,6 @@ module Config
   COLOR_SEAM       = [138, 210, 196]
   COLOR_CREATURE   = [176, 92, 162]
   COLOR_ROCK       = [206, 206, 214]
-  COLOR_OWL        = [214, 196, 156]
-
   # Deliberately unlike every other colour here. Nothing else on screen speaks,
   # and when something else eventually does, the owl must not read as it.
   COLOR_OWL_SPEECH = [236, 226, 198]

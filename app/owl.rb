@@ -32,13 +32,24 @@ module Owl
       # the stage from wherever the default happened to put it.
       owl.x, owl.depth = anchor_for player
 
-      owl.w  = Config::OWL_W
-      owl.h  = Config::OWL_H
+      # No w/h: the owl is drawn from art, so its size comes from the tier
+      # descriptor in Assets rather than from the entity. fw/fd stay, since
+      # the anchor is still clamped against the screen edge.
       owl.fw = Config::OWL_FW
       owl.fd = Config::OWL_FD
 
       owl.mode  = :perched
       owl.speed = 0.0
+
+      # Which way it is looking: :east or :west. It turns to face the
+      # traveller rather than the way it is going -- an owl watching someone
+      # reads as company, and one staring off down its own flight path reads
+      # as a bird that happens to be nearby.
+      owl.facing = :east
+
+      # Ticks spent flying, wrapped to one full wingbeat. Only ever advances
+      # in the air; a perched owl holds a single pose.
+      owl.flap_ticks = 0
 
       # Current drawn height, eased toward whichever height the mode wants.
       # Stored rather than derived so the rise and drop carry across frames
@@ -61,6 +72,38 @@ module Owl
     end
 
     ease_lift owl
+    face_player owl, args.state.player
+    beat_wings owl
+  end
+
+  # Turns to look at the traveller, snapping to a side profile. He is beside
+  # the owl rather than above or below it, so east and west are the only two
+  # poses this ever asks for.
+  #
+  # The deadband is what stops it flicking between facings every frame while
+  # he walks along the owl's own x.
+  def self.face_player owl, player
+    offset = player.x - owl.x
+
+    return if offset.abs < Config::OWL_FACING_DEADBAND_PX
+
+    owl.facing = offset > 0 ? :east : :west
+  end
+
+  # A perched owl holds one pose, so the beat only runs in the air and resets
+  # on landing -- otherwise it would resume mid-stroke on the next take-off.
+  def self.beat_wings owl
+    unless owl.mode == :flying
+      owl.flap_ticks = 0
+      return
+    end
+
+    owl.flap_ticks = (owl.flap_ticks + 1) % beat_length
+  end
+
+  # One full cycle is both halves of the stroke: wings down, then wings up.
+  def self.beat_length
+    Config::OWL_FLAP_TICKS * 2
   end
 
   # Where the owl wants to be: behind the player along x and a little further
@@ -138,6 +181,37 @@ module Owl
     dd = anchor[1] - owl.depth
 
     Math.sqrt((dx * dx) + (dd * dd))
+  end
+
+  # --- Drawing --------------------------------------------------------------
+  #
+  # The owl owns which pose it is in; the renderer owns turning that into
+  # pixels. Same split as Player.drawable.
+
+  def self.drawable args
+    owl = args.state.owl
+
+    {
+      entity: owl,
+      sprite: sprite_name(owl),
+      lift: owl.lift,
+      progress: flap_progress(owl)
+    }
+  end
+
+  def self.sprite_name owl
+    if owl.mode == :flying
+      owl.facing == :west ? :owl_flying_west : :owl_flying_east
+    else
+      owl.facing == :west ? :owl_perched_west : :owl_perched_east
+    end
+  end
+
+  # Normalised 0.0..1.0 through the wingbeat. Assets turns that into a frame
+  # without the caller ever learning how many there are, which is what lets
+  # the truth-tier owl be drawn with a different number of them later.
+  def self.flap_progress owl
+    owl.flap_ticks / beat_length.to_f
   end
 
   # An arrive distance at or below the step size means the owl oversteps its

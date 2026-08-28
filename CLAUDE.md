@@ -99,6 +99,17 @@ These matter more here than they would on a settled codebase, precisely
   player with slack rather than a fixed offset. It is airborne: its
   (x, depth) is the ground it is above, and `lift` raises only where it is
   drawn, so depth sorting is untouched.
+- The owl uses real sprite art (myth tier): perched and a two-frame wingbeat,
+  east and west only -- it turns to look at the traveller. The other six
+  directions are drawn and sitting in `sprites/owl/myth/`; switching one on is
+  a row in `Assets::OWL_POSES`, not new code. The wingbeat is on a TIMER,
+  unlike the player's distance-driven walk cycle, because a bird's beat rate
+  has nothing to do with its ground speed.
+- `Assets` descriptors may now carry `height_px`, defaulting to
+  `CHARACTER_HEIGHT_PX`. Not everything is person-sized; the owl would
+  otherwise be drawn 90px tall. `Renderer.sprite_rect` is the one answer to
+  "where was this drawn", used by the renderer and by the owl's click target
+  and speech label so they cannot drift apart from the art.
 - The owl speaks (`owl_speech.rb`) on exactly two things: the player CLICKING
   it, and the story having a hint to offer -- today only the doc's seam beat
   ("once a seam is revealed, the owl hints at how to activate it"). It does

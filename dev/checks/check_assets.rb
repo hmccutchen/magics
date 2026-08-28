@@ -78,13 +78,26 @@ end
 
 check_close 'push foot pad ratio', Assets.foot_pad_ratio(:player_push_east, :myth), 3.0 / 32
 
-puts 'figure height is identical across every declared tier'
+puts 'the traveller still uses the shared character height'
+[:player_walk, :player_push_east, :player_push_north].each do |name|
+  check "#{name} declares no height of its own",
+        Assets.descriptor(name, :myth)[:height_px], nil
+end
+
+puts 'every asset draws its figure at the height it asks for, in every tier'
+#
+# The point of this is tier INDEPENDENCE: myth and truth art may be authored on
+# different canvases with different proportions, and must still come out the
+# same size on screen. `height_px` lets an asset name that size for itself --
+# an owl is not person-sized -- and defaults to CHARACTER_HEIGHT_PX, so
+# anything that does not say otherwise is still checked against it.
 Assets::TABLE.each do |name, tiers|
   tiers.each_key do |tier|
     _, drawn_h = Assets.draw_size name, tier
     descriptor = Assets.descriptor name, tier
     figure_px  = drawn_h * descriptor[:figure_h] / descriptor[:canvas_h]
-    check_close "#{name}/#{tier} figure px", figure_px, Config::CHARACTER_HEIGHT_PX
+    target     = descriptor[:height_px] || Config::CHARACTER_HEIGHT_PX
+    check_close "#{name}/#{tier} figure px", figure_px, target
   end
 end
 

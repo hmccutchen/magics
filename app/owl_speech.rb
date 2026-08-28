@@ -106,14 +106,13 @@ module OwlSpeech
     click = args.inputs.mouse.click
     return false unless click
 
-    owl = args.state.owl
-    return false unless owl
+    return false unless args.state.owl
 
-    click.inside_rect? hit_rect(owl)
+    click.inside_rect? hit_rect(args)
   end
 
-  def self.hit_rect owl
-    rect = World.place owl.x, owl.depth, owl.w, owl.h, owl.lift
+  def self.hit_rect args
+    rect = Renderer.sprite_rect args, Owl.drawable(args)
     pad  = Config::OWL_CLICK_PADDING_PX
 
     {
@@ -308,7 +307,7 @@ module OwlSpeech
     return unless owl
 
     text = LINES[args.state.owl_line][:text]
-    rect = World.place owl.x, owl.depth, owl.w, owl.h, owl.lift
+    rect = Renderer.sprite_rect args, Owl.drawable(args)
 
     # calcstringbox returns [width, height] for the string as it will actually
     # be drawn, which is the only honest way to know where its edges land.

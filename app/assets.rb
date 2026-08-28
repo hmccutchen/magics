@@ -62,6 +62,44 @@ module Assets
     }
   end
 
+  # The owl. Two facings only -- it turns to look at the traveller, and he is
+  # beside it rather than above or below it, so east and west are the poses
+  # that ever get asked for. The other six directions are drawn and sitting in
+  # the same folders; switching one on is a row here, not new code.
+  #
+  # Flight is a two-frame wingbeat built from files in DIFFERENT folders, which
+  # is why `dir` stops at the tier and the folder is part of each filename.
+  # Order matters: wings down, then wings up.
+  #
+  # One figure_h and one foot_pad across all four, not per file. The figures
+  # actually measure 39 to 45 tall with 2 to 5 rows below them, but a per-file
+  # value would make the owl grow and bob every time it flapped -- the same
+  # reason the push poses share one height. 40 is the perched body; the wings
+  # are allowed to extend past it.
+  OWL_POSES = {
+    owl_perched_east: ['idle/east.png'],
+    owl_perched_west: ['idle/west.png'],
+    owl_flying_east:  ['flying/east.png', 'flapping-wings/east.png'],
+    owl_flying_west:  ['flying/west.png', 'flapping-wings/west.png']
+  }
+
+  OWL_POSES.each do |name, files|
+    ASSETS[name] = {
+      myth: {
+        dir: 'sprites/owl/myth',
+        files: files,
+        canvas_w: 48,
+        canvas_h: 48,
+        figure_h: 40,
+        foot_pad: 4,
+
+        # An owl, not a person. This is the number to tune if it reads wrong
+        # against the traveller.
+        height_px: Config::OWL_HEIGHT_PX
+      }
+    }
+  end
+
   # Zero-padded by hand rather than with format/rjust: this runs in mruby, which
   # has already silently returned nil from a method MRI accepted. Stdlib
   # coverage is verified, not assumed.
@@ -134,9 +172,18 @@ module Assets
 
   # Drawn canvas size at full scale, derived so the FIGURE lands at
   # Config::CHARACTER_HEIGHT_PX regardless of how the tier was authored.
+  # Drawn canvas size at full scale, derived so the FIGURE lands at the
+  # descriptor's target height regardless of how the tier was authored.
+  #
+  # `height_px` is per asset because not everything in this world is
+  # person-sized. It defaults to CHARACTER_HEIGHT_PX, so anything that does not
+  # say otherwise -- the player and every pose he holds -- is unaffected.
+  # Without it an owl would be drawn ninety pixels tall and stand eye to eye
+  # with the traveller.
   def self.draw_size name, tier
     found  = descriptor name, tier
-    factor = Config::CHARACTER_HEIGHT_PX.to_f / found[:figure_h]
+    target = found[:height_px] || Config::CHARACTER_HEIGHT_PX
+    factor = target.to_f / found[:figure_h]
 
     [found[:canvas_w] * factor, found[:canvas_h] * factor]
   end

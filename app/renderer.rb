@@ -28,7 +28,7 @@ module Renderer
 
       # The owl is airborne: `lift` raises where it is DRAWN without touching
       # its depth, so it still sorts by the ground beneath it.
-      { entity: args.state.owl, color: Config::COLOR_OWL, lift: args.state.owl.lift }
+      Owl.drawable(args)
     ]
 
     # Each module owns the rule for whether it is on screen; the renderer just
@@ -74,6 +74,29 @@ module Renderer
     entity = drawable[:entity]
     name   = drawable[:sprite]
     tier   = Regions.tier_at args, entity.x, entity.depth
+    rect   = sprite_rect args, drawable
+
+    args.outputs.sprites << Scene.image(
+      rect[:x],
+      rect[:y],
+      rect[:w],
+      rect[:h],
+      Assets.frame_path(name, tier, drawable[:progress] || 0.0),
+      drawable[:flip],
+      drawable[:alpha] || 255
+    )
+  end
+
+  # Where a sprite drawable actually lands on screen.
+  #
+  # Split out of push_sprite so that anything needing to know where an entity
+  # was DRAWN -- the owl's click target, the line of text above its head --
+  # asks the renderer the same question rather than recomputing it and
+  # drifting out of step the first time the art changes.
+  def self.sprite_rect args, drawable
+    entity = drawable[:entity]
+    name   = drawable[:sprite]
+    tier   = Regions.tier_at args, entity.x, entity.depth
 
     width, height = Assets.draw_size name, tier
     rect = World.place entity.x, entity.depth, width, height, (drawable[:lift] || 0)
@@ -81,17 +104,9 @@ module Renderer
     # Push the sprite DOWN so its feet, rather than its canvas bottom, land on
     # the ground plane. Scales with the drawn size, so the character stays
     # planted at every depth instead of drifting upward as it grows.
-    inset = rect[:h] * Assets.foot_pad_ratio(name, tier)
+    rect[:y] -= rect[:h] * Assets.foot_pad_ratio(name, tier)
 
-    args.outputs.sprites << Scene.image(
-      rect[:x],
-      rect[:y] - inset,
-      rect[:w],
-      rect[:h],
-      Assets.frame_path(name, tier, drawable[:progress] || 0.0),
-      drawable[:flip],
-      drawable[:alpha] || 255
-    )
+    rect
   end
 
   # `offset_*` nudge only where the entity is DRAWN, never where it is. Depth
