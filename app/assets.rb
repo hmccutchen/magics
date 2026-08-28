@@ -67,31 +67,49 @@ module Assets
   # that ever get asked for. The other six directions are drawn and sitting in
   # the same folders; switching one on is a row here, not new code.
   #
-  # Flight is a two-frame wingbeat built from files in DIFFERENT folders, which
-  # is why `dir` stops at the tier and the folder is part of each filename.
-  # Order matters: wings down, then wings up.
+  # Three poses, because the owl is in three visibly different situations:
+  # perched on something, gliding above the traveller, and beating its wings
+  # to get down to a perch or back up off one. Flight is the only animated
+  # one, and it is a two-frame beat built from files in DIFFERENT folders --
+  # which is why `dir` stops at the tier and the folder is part of each
+  # filename. Order matters: wings down, then wings up.
   #
-  # One figure_h and one foot_pad across all four, not per file. The figures
-  # actually measure 39 to 45 tall with 2 to 5 rows below them, but a per-file
-  # value would make the owl grow and bob every time it flapped -- the same
-  # reason the push poses share one height. 40 is the perched body; the wings
-  # are allowed to extend past it.
+  # foot_pad is PER POSE, because these canvases are registered differently:
+  # the soaring bird sits 8 rows off the bottom where the perched one sits 4.
+  # That is safe here only because the poses never share an animation cycle --
+  # a soaring owl does not flap, so the two are never alternated and the
+  # difference cannot show up as a jitter. It is corrected per pose instead,
+  # so each one lands at the height it is supposed to.
+  #
+  # figure_h is ONE value across all of them, unlike foot_pad. It sets the
+  # scale, so varying it would resize the bird as it changed pose. 40 is the
+  # perched body; the soaring figure is shorter and much wider, and is
+  # supposed to look that way.
   OWL_POSES = {
-    owl_perched_east: ['idle/east.png'],
-    owl_perched_west: ['idle/west.png'],
-    owl_flying_east:  ['flying/east.png', 'flapping-wings/east.png'],
-    owl_flying_west:  ['flying/west.png', 'flapping-wings/west.png']
+    owl_perched_east: { files: ['idle/east.png'],    foot_pad: 4 },
+    owl_perched_west: { files: ['idle/west.png'],    foot_pad: 4 },
+    owl_soaring_east: { files: ['soaring/east.png'], foot_pad: 8 },
+    owl_soaring_west: { files: ['soaring/west.png'], foot_pad: 8 },
+
+    owl_flying_east: {
+      files: ['flying/east.png', 'flapping-wings/east.png'],
+      foot_pad: 3
+    },
+    owl_flying_west: {
+      files: ['flying/west.png', 'flapping-wings/west.png'],
+      foot_pad: 3
+    }
   }
 
-  OWL_POSES.each do |name, files|
+  OWL_POSES.each do |name, pose|
     ASSETS[name] = {
       myth: {
         dir: 'sprites/owl/myth',
-        files: files,
+        files: pose[:files],
         canvas_w: 48,
         canvas_h: 48,
         figure_h: 40,
-        foot_pad: 4,
+        foot_pad: pose[:foot_pad],
 
         # An owl, not a person. This is the number to tune if it reads wrong
         # against the traveller.

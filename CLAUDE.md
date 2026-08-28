@@ -99,12 +99,20 @@ These matter more here than they would on a settled codebase, precisely
   player with slack rather than a fixed offset. It is airborne: its
   (x, depth) is the ground it is above, and `lift` raises only where it is
   drawn, so depth sorting is untouched.
-- The owl uses real sprite art (myth tier): perched and a two-frame wingbeat,
-  east and west only -- it turns to look at the traveller. The other six
-  directions are drawn and sitting in `sprites/owl/myth/`; switching one on is
-  a row in `Assets::OWL_POSES`, not new code. The wingbeat is on a TIMER,
-  unlike the player's distance-driven walk cycle, because a bird's beat rate
-  has nothing to do with its ground speed.
+- The owl uses real sprite art (myth tier) in three poses -- perched, soaring,
+  and a two-frame wingbeat -- east and west only, since it turns to look at
+  the traveller. The other six directions are drawn and sitting in
+  `sprites/owl/myth/`; switching one on is a row in `Assets::OWL_POSES`, not
+  new code. `foot_pad` is per pose there because the canvases are registered
+  differently; `figure_h` is shared, so the bird never changes size. The
+  wingbeat is on a TIMER, unlike the player's distance-driven walk cycle,
+  because a bird's beat rate has nothing to do with its ground speed.
+- Owl behaviour is a four-state machine: `:soaring` (the default -- glides
+  high, slack-follows the player), `:descending`, `:perched`, `:climbing`.
+  It lands only on pushables and the creature, NEVER the player, and it RIDES
+  what it lands on. Wingbeats are reserved for landing and taking off, so
+  catching up across open air is a glide. A perch ends on a randomised timer
+  or when the player walks far enough away -- following stays dominant.
 - `Assets` descriptors may now carry `height_px`, defaulting to
   `CHARACTER_HEIGHT_PX`. Not everything is person-sized; the owl would
   otherwise be drawn 90px tall. `Renderer.sprite_rect` is the one answer to

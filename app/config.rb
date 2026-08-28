@@ -312,8 +312,36 @@ module Config
   # so its (x, depth) is the point it is ABOVE and this raises the sprite off
   # it -- the same mechanism the thrown rock uses to look airborne while still
   # sorting by where it is on the ground.
-  OWL_PERCH_LIFT  = 58
-  OWL_FLIGHT_LIFT = 96
+  #
+  # Where it lives: high up, riding above the traveller. There is no constant
+  # for the perched height, because a perched owl sits on top of whatever it
+  # landed on and takes its height from that.
+  OWL_SOAR_LIFT = 168
+
+  # --- Deciding to land -----------------------------------------------------
+  #
+  # It comes down onto things in the world -- a crate, the deer -- never onto
+  # the traveller. Both timers are randomised the way the creature's grazing
+  # is, so the rhythm does not come out metronomic.
+
+  OWL_SOAR_TICKS_MIN  = 420
+  OWL_SOAR_TICKS_MAX  = 900
+
+  OWL_PERCH_TICKS_MIN = 240
+  OWL_PERCH_TICKS_MAX = 640
+
+  # How near the TRAVELLER a thing has to be to be worth landing on. Measured
+  # from him rather than from the owl so it never peels off across the map to
+  # sit on something he has already walked away from.
+  OWL_PERCH_REACH = 320.0
+
+  # Coming down and going back up are slower than crossing open air, so a
+  # landing reads as a landing rather than a dive.
+  OWL_LANDING_SPEED = 2.6
+
+  # Close enough, in drawn pixels, for the descent to count as finished. The
+  # lift eases asymptotically, so without a tolerance it would never arrive.
+  OWL_LIFT_ARRIVED_PX = 3.0
 
   # How quickly the drawn height eases between the two, as a fraction of the
   # remaining gap per frame. Kept well below 1 so it rises and drops smoothly

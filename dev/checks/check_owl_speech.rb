@@ -19,8 +19,8 @@ class FakeOwl
   def initialize
     @x          = 640
     @depth      = 100.0
-    @lift       = Config::OWL_PERCH_LIFT
-    @mode       = :perched
+    @lift       = Config::OWL_SOAR_LIFT
+    @mode       = :soaring
     @facing     = :east
     @flap_ticks = 0
   end
