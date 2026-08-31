@@ -359,22 +359,22 @@ module Owl
     owl.flap_ticks = (owl.flap_ticks + 1) % beat_length
   end
 
-  # Beating is the default in the air. The two things that stop it are both
-  # forms of not working at it: an active glide, and having no gap left to
-  # close.
+  # Beating is the default in the air, whether or not the owl is going
+  # anywhere. An owl holding station is not resting -- it is holding itself
+  # up, and drawn with its wings out and motionless it reads as levitating
+  # rather than flying. The ONLY thing that stops the beat in the air is a
+  # deliberate glide.
   def self.flapping? owl
-    return false if owl.mode == :perched
-    return true unless owl.mode == :soaring
-
-    !owl.gliding && owl.speed > 0.0
+    owl.mode != :perched && !owl.gliding
   end
 
   # Decides whether this frame is spent coasting. Called only from soaring:
   # coming down to a perch and climbing back off one are worked for the whole
   # way, so neither is ever interrupted by a glide.
   def self.update_glide args, owl, distance
-    # Holding station rather than crossing anything. Clear the burst so the
-    # next real crossing starts on wingbeat, whatever was running before.
+    # Holding station rather than crossing anything: an owl hovering in place
+    # is working at it, so it beats rather than coasts. Clear any burst so the
+    # next real crossing starts on wingbeat.
     return owl.gliding = false if owl.speed <= 0.0
 
     return owl.gliding = false if owl.gliding && args.state.tick_count >= owl.glide_until

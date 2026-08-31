@@ -360,7 +360,13 @@ module Config
   # start at all. Must exceed OWL_SLACK_RADIUS -- below that the owl does not
   # move, so a threshold under it would not gate anything -- asserted in
   # owl.rb. This is the number to raise if glides feel too common.
-  OWL_GLIDE_MIN_DISTANCE = 300.0
+  #
+  # Sits only a little over the slack radius because the gap in practice does
+  # not get anywhere near as big as it looks like it could: the owl is FASTER
+  # than the player, so he cannot outrun it. Gaps this size open when he turns
+  # around and the anchor jumps to his other side, not by him walking away. At
+  # 300 the glide measurably never fired at all.
+  OWL_GLIDE_MIN_DISTANCE = 200.0
 
   # Chance of breaking into a glide, rolled once per COMPLETED wingbeat rather
   # than every tick, so it never breaks off mid-stroke and the number means
