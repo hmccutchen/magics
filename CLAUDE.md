@@ -81,8 +81,33 @@ These matter more here than they would on a settled codebase, precisely
 - No jumping, no gravity -- this is a walking-based game.
 - Collision uses ground-plane footprint checks in world (x, depth) space,
   not screen-space.
-- Bit-depth fidelity system is in: regions are myth or truth, and a region's
-  tier resolves what its contents are drawn as (`regions.rb`, `assets.rb`).
+- Bit-depth fidelity system is in. The tiers are a LADDER, coarsest first:
+  `:rumour` (2-bit), `:myth` (8-bit), `:truth` (16-bit). The WORLD climbs it by
+  place, a region at a time (`Regions.tier_at`), and that is still the rule for
+  everything except one thing.
+- The TRAVELLER is that exception: he climbs by progress and carries the result
+  everywhere (`Player.tier`). He starts at `:rumour` and steps to `:myth` the
+  first time a pattern completes; above that rung, place governs him again as
+  before. A drawable may now carry its own `:tier`, which `Renderer.tier_for`
+  honours over the ground position -- the player's drawable is the only one
+  that does. The step-up hangs off `Seams.revealed?` (permanent), NOT
+  `Pattern.complete?` (recomputed live from where the blocks sit, and false
+  again if one is shoved back out).
+- At `:rumour` he does not animate: `Assets::STAND_POSE_FILES` gives eight held
+  directional poses (`sprites/player/myth/2-bit-idle/`) used for standing AND
+  walking. That is the design, not a gap -- at 2-bit there is not enough of him
+  recorded to show him moving. These are the only real 8-direction art in the
+  game; the 8-bit walk cycle is still one side view mirrored, so the 2-bit
+  traveller is the only one who genuinely faces north or south-west. They
+  declare NO myth tier on purpose: there is no 8-bit standing pose in the
+  design (8-bit idle is walk frame 0), so there is nothing honest to fall back
+  to, and Assets raises loudly if the invariant is ever broken.
+- PUSHING is deliberately held back at 8-bit: the push poses declare no
+  `:rumour` tier, so Assets falls back and logs it once. Drawing 2-bit push art
+  and declaring it is the whole change when that art exists.
+- The switch from 2-bit to 8-bit is currently INSTANT. Making it gradual is the
+  outstanding piece; `drawable[:alpha]` is forwarded by `Renderer.push_sprite`
+  but set by nobody, so a crossfade has a hook waiting.
 - The adversarial loop is GONE -- no enemy, no damage, no fail state, no
   pickup item. `creature.rb` replaces `enemy.rb`.
 - Manipulation verbs are in: pushing (with weight, alignment, sliding and

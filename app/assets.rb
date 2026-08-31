@@ -7,12 +7,24 @@
 # the truth, not merely a coarser one, so a mythologised creature may be the
 # wrong shape entirely. Geometry therefore belongs beside each file rather than
 # in Config, which keeps only values tuned by feel.
+# The tiers form a LADDER, coarsest first:
+#
+#   :rumour  2-bit. Barely enough information to be a story yet.
+#   :myth    8-bit. The traveller's own dramatised account of what happened.
+#   :truth   16-bit. What actually happened.
+#
+# The world climbs it by place, a region at a time (`Regions.tier_at`). The
+# TRAVELLER climbs it by progress instead, and carries the result everywhere
+# he goes -- see `Player.tier`, which is the one deliberate exception to
+# fidelity being a property of place.
 module Assets
   FALLBACK_TIER = :myth
 
   # Declare a tier only once its art exists. An undeclared tier falls back to
   # myth, which is what lets regions and puzzles be built before the truth art
   # is authored -- a resolved region simply does not change appearance yet.
+  # It is also how the push poses are held back at 8-bit while the rest of the
+  # traveller is 2-bit: they simply declare no :rumour tier.
   # A descriptor names its files one of two ways:
   #
   #   frames: N  -- a numbered cycle, frame_000.png .. frame_(N-1).png
@@ -69,6 +81,54 @@ module Assets
       myth: {
         dir: 'sprites/player/myth',
         files: [file, "pushing/#{file}"],
+        canvas_w: 32,
+        canvas_h: 32,
+        figure_h: 26,
+        foot_pad: 3
+      }
+    }
+  end
+
+  # The 2-bit traveller: eight held directional poses and nothing else.
+  #
+  # He does not animate at this tier. There is no walk cycle and no push art,
+  # so standing and walking both draw the same held pose -- which is the point
+  # rather than a gap to apologise for: at 2-bit there is not enough of him
+  # recorded yet to show him moving.
+  #
+  # In one respect this is MORE faithful than the 8-bit art, not less. The
+  # 8-bit walk cycle is a single side view mirrored for both directions, so
+  # the traveller has never actually faced into or out of the scene. These
+  # eight are real directions, south-west included -- the one the 8-bit set
+  # still lacks.
+  #
+  # Registered on the same canvas geometry as the push poses (32x32,
+  # figure_h 26, foot_pad 3), which is measured from the art, not assumed: he
+  # therefore does not change size or lift off the ground at the moment the
+  # bit style steps up.
+  STAND_POSE_FILES = {
+    player_stand_north:      'north.png',
+    player_stand_north_east: 'north-east.png',
+    player_stand_east:       'east.png',
+    player_stand_south_east: 'south-east.png',
+    player_stand_south:      'south.png',
+    player_stand_south_west: 'south-west.png',
+    player_stand_west:       'west.png',
+    player_stand_north_west: 'north-west.png'
+  }
+
+  # Declared at :rumour ONLY, with no myth tier to fall back to. That is
+  # deliberate: there is no 8-bit standing pose in the design -- an 8-bit
+  # traveller standing still is frame 0 of his walk cycle -- so there is
+  # nothing honest to fall back to. `Player.drawable` asks for these names
+  # only while he is at :rumour, so the fallback is never reached; if that
+  # invariant is ever broken, Assets raises and says so rather than quietly
+  # drawing the wrong fidelity.
+  STAND_POSE_FILES.each do |name, file|
+    ASSETS[name] = {
+      rumour: {
+        dir: 'sprites/player/myth/2-bit-idle',
+        files: [file],
         canvas_w: 32,
         canvas_h: 32,
         figure_h: 26,

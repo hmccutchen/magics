@@ -67,13 +67,17 @@ module Renderer
     end
   end
 
-  # Resolves the drawable's sprite name to a file through the tier of the region
-  # its ground position falls in. Entities never learn their own tier: fidelity
-  # is a property of place, and place is the renderer's business.
+  # Resolves the drawable's sprite name to a file through its tier, which is
+  # normally the tier of the region its ground position falls in. Entities do
+  # not learn their own tier: fidelity is a property of place, and place is
+  # the renderer's business.
+  #
+  # The traveller is the single exception -- what he is drawn as follows him
+  # rather than the ground -- so a drawable may override the answer by
+  # carrying its own :tier. See `Player.tier`.
   def self.push_sprite args, drawable
-    entity = drawable[:entity]
     name   = drawable[:sprite]
-    tier   = Regions.tier_at args, entity.x, entity.depth
+    tier   = tier_for args, drawable
     rect   = sprite_rect args, drawable
 
     args.outputs.sprites << Scene.image(
@@ -93,10 +97,20 @@ module Renderer
   # was DRAWN -- the owl's click target, the line of text above its head --
   # asks the renderer the same question rather than recomputing it and
   # drifting out of step the first time the art changes.
+  # The one place both the tier rule and the override live, so push_sprite and
+  # sprite_rect cannot disagree about what fidelity a thing was drawn at.
+  def self.tier_for args, drawable
+    return drawable[:tier] if drawable[:tier]
+
+    entity = drawable[:entity]
+
+    Regions.tier_at args, entity.x, entity.depth
+  end
+
   def self.sprite_rect args, drawable
     entity = drawable[:entity]
     name   = drawable[:sprite]
-    tier   = Regions.tier_at args, entity.x, entity.depth
+    tier   = tier_for args, drawable
 
     width, height = Assets.draw_size name, tier
     rect = World.place entity.x, entity.depth, width, height, (drawable[:lift] || 0)

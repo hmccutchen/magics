@@ -231,8 +231,14 @@ module OwlSpeech
       # the story doc's own axis for why a repeated line lands differently --
       # not the owl getting more honest, but him becoming able to hear it --
       # so of everything here this is the value most likely to matter.
-      standing_in: Regions.at(player.x, player.depth)[:name],
-      player_tier: Regions.tier_at(args, player.x, player.depth)
+      #
+      # Asked of the PLAYER rather than of the ground he is standing on: he
+      # carries his own rung of the ladder, so the region's tier is not his.
+      # A writing pass reading this log wants to know what HE was, since that
+      # is the half of the doc's axis about his capacity to hear the line.
+      standing_in:  Regions.at(player.x, player.depth)[:name],
+      ground_tier:  Regions.tier_at(args, player.x, player.depth),
+      player_tier:  Player.tier(args)
     }
   end
 

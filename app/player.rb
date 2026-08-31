@@ -86,19 +86,98 @@ module Player
     }
   }
 
-  # Everything the renderer needs to draw the player this frame. Deliberately
-  # carries a sprite NAME and a normalised cycle position, never a file path
-  # and never a tier -- the renderer resolves both from where the player is
-  # standing. This is also what makes cadence independent of frame count: a
-  # 4-frame myth cycle and an 8-frame truth cycle cover the same ground.
+  # Which held pose to draw at :rumour, keyed the same way PUSH_POSES is:
+  # STAND_POSES[depth facing][horizontal facing] -> sprite name.
+  #
+  # Unlike the push table there is nothing mirrored here. The 2-bit set has a
+  # real south-west, so every direction is its own drawing and none of them
+  # need flipping.
+  STAND_POSES = {
+     1 => {
+      -1 => :player_stand_north_west,
+       0 => :player_stand_north,
+       1 => :player_stand_north_east
+    },
+     0 => {
+      -1 => :player_stand_west,
+       0 => :player_stand_south,
+       1 => :player_stand_east
+    },
+    -1 => {
+      -1 => :player_stand_south_west,
+       0 => :player_stand_south,
+       1 => :player_stand_south_east
+    }
+  }
+
+  # Where the TRAVELLER is on the fidelity ladder, which is not the same
+  # question as where the ground under him is.
+  #
+  # Everything else in the world takes its tier from the region it stands in,
+  # because fidelity is a property of place. He is the exception: what he is
+  # drawn as follows him, so crossing out of a resolved region does not undo
+  # what he has understood. He starts at 2-bit and steps up to his 8-bit self
+  # the first time he completes a pattern.
+  #
+  # Above that first rung, place governs him again exactly as it did before,
+  # so a resolved region still steps him to :truth when that art exists.
+  def self.tier args
+    return :rumour unless stepped_up? args
+
+    player = args.state.player
+
+    Regions.tier_at args, player.x, player.depth
+  end
+
+  # Keyed on the seam being REVEALED rather than on `Pattern.complete?`,
+  # which is recomputed live from where the blocks currently sit and goes
+  # false again if he shoves one back out. Noticing something is not the sort
+  # of thing that can be taken back, so the step up has to hang off the
+  # permanent fact, not the reversible one.
+  def self.stepped_up? args
+    Seams.revealed_names(args).any?
+  end
+
+  # Everything the renderer needs to draw the player this frame. Carries a
+  # sprite NAME and a normalised cycle position rather than a file path, which
+  # is what makes cadence independent of frame count: a 4-frame myth cycle and
+  # an 8-frame truth cycle cover the same ground.
+  #
+  # It DOES carry a tier, unlike every other drawable, for the reason given on
+  # `tier` above -- he is the one thing whose fidelity is not read off the
+  # ground he is standing on.
   def self.drawable args
-    return push_drawable args if args.state.player.pushing
+    tier = tier args
+
+    return push_drawable args, tier if args.state.player.pushing
+    return stand_drawable args, tier if tier == :rumour
 
     {
       entity: args.state.player,
       sprite: :player_walk,
       progress: cycle_progress(args),
-      flip: args.state.player.heading_x < 0
+      flip: args.state.player.heading_x < 0,
+      tier: tier
+    }
+  end
+
+  # The 2-bit traveller, standing or walking. One held pose either way: there
+  # is no 2-bit walk cycle, and at this fidelity there is not supposed to be.
+  #
+  # facing_x and facing_depth persist while he stands still, so he keeps
+  # looking the way he last walked rather than snapping back to a default.
+  # Both are read through to_i because they are seeded as Floats and set from
+  # input as Integers, and a Hash keyed on 1 does not answer to 1.0.
+  def self.stand_drawable args, tier
+    player = args.state.player
+
+    row  = STAND_POSES[player.facing_depth.to_i] || STAND_POSES[0]
+    pose = row[player.facing_x.to_i] || :player_stand_south
+
+    {
+      entity: player,
+      sprite: pose,
+      tier: tier
     }
   end
 
@@ -108,17 +187,24 @@ module Player
   # Direction comes from facing, which is set from this frame's input. Falls
   # back to the south pose rather than raising if facing is ever a value the
   # table has no row for.
-  def self.push_drawable args
+  #
+  # The push poses declare no :rumour art, so while he is 2-bit this asks for
+  # a tier that does not exist and Assets hands back the 8-bit pose, logging
+  # the gap once. That is the intended state, not a bug: pushing is held at
+  # 8-bit until the 2-bit push art is drawn, at which point declaring it in
+  # Assets is the whole change.
+  def self.push_drawable args, tier
     player = args.state.player
 
-    row  = PUSH_POSES[player.facing_depth] || PUSH_POSES[0]
-    pose = row[player.facing_x] || [:player_push_south, false]
+    row  = PUSH_POSES[player.facing_depth.to_i] || PUSH_POSES[0]
+    pose = row[player.facing_x.to_i] || [:player_push_south, false]
 
     {
       entity: player,
       sprite: pose[0],
       flip: pose[1],
-      progress: cycle_progress(args, Config::PUSH_CYCLE_DISTANCE)
+      progress: cycle_progress(args, Config::PUSH_CYCLE_DISTANCE),
+      tier: tier
     }
   end
 
