@@ -27,10 +27,12 @@
 # and it will sit on the deer while the deer wanders off. An owl that stayed
 # nailed in place while its perch slid out from under it would read as a bug.
 #
-# Wingbeats are reserved for getting down to a perch and back off one. Soaring
-# is a glide, so crossing open air to catch the traveller up happens on
-# motionless wings -- which is what birds actually do, and what keeps the
-# flapping meaningful when it does happen.
+# It BEATS ITS WINGS whenever it is actually going somewhere -- crossing open
+# air to catch the traveller up, coming down to a perch, climbing back off
+# one. The motionless glide is the exception: it breaks into one occasionally,
+# and only partway through a long crossing, which is where a bird has the
+# speed to coast on. Holding station inside its slack radius it coasts too,
+# rather than beating on the spot for as long as the traveller mills about.
 #
 # Modes:
 #   :soaring     gliding high, following him. The default and the usual state.
@@ -64,6 +66,12 @@ module Owl
       # Ticks spent beating its wings, wrapped to one full stroke. Only
       # advances while flapping; a gliding or perched owl holds one pose.
       owl.flap_ticks = 0
+
+      # Whether it is coasting mid-crossing, and the tick that coast runs out
+      # on. Only ever set while soaring -- a descent or a climb is worked for,
+      # never coasted.
+      owl.gliding     = false
+      owl.glide_until = 0
 
       owl.lift = Config::OWL_SOAR_LIFT
 
@@ -104,8 +112,9 @@ module Owl
   # --- Soaring --------------------------------------------------------------
 
   def self.soar args, owl
-    follow args, owl, Config::OWL_SPEED
+    distance = follow args, owl, Config::OWL_SPEED
     ease_lift owl, Config::OWL_SOAR_LIFT
+    update_glide args, owl, distance
 
     return if args.state.tick_count < owl.soar_until
 
@@ -120,16 +129,21 @@ module Owl
   # Closes the gap to the anchor, but only once it is worth crossing. The
   # slack radius is the entire difference between a companion and a fixed
   # offset: below it the owl simply drifts while the traveller mills about.
+  #
+  # Returns the gap it measured, which is what decides whether this crossing
+  # is long enough to be worth gliding part of.
   def self.follow args, owl, cruise
     anchor   = anchor_for args.state.player
     distance = distance_to owl, anchor
 
     if distance <= Config::OWL_SLACK_RADIUS
       owl.speed = 0.0
-      return
+      return distance
     end
 
     move_toward owl, anchor, distance, cruise
+
+    distance
   end
 
   # Where the owl wants to be: behind the player along x and a little further
@@ -333,9 +347,9 @@ module Owl
     owl.facing = offset > 0 ? :east : :west
   end
 
-  # Wings beat only on the way down to a perch and on the way back up. A
-  # soaring owl glides and a perched one sits, so both hold a single pose --
-  # and the beat resets, so it does not resume mid-stroke next time.
+  # Wings beat whenever the owl is flying somewhere. A perched owl sits and a
+  # gliding or station-holding one coasts, so those hold a single pose -- and
+  # the beat resets, so it does not resume mid-stroke next time.
   def self.beat_wings owl
     unless flapping? owl
       owl.flap_ticks = 0
@@ -345,8 +359,42 @@ module Owl
     owl.flap_ticks = (owl.flap_ticks + 1) % beat_length
   end
 
+  # Beating is the default in the air. The two things that stop it are both
+  # forms of not working at it: an active glide, and having no gap left to
+  # close.
   def self.flapping? owl
-    owl.mode == :descending || owl.mode == :climbing
+    return false if owl.mode == :perched
+    return true unless owl.mode == :soaring
+
+    !owl.gliding && owl.speed > 0.0
+  end
+
+  # Decides whether this frame is spent coasting. Called only from soaring:
+  # coming down to a perch and climbing back off one are worked for the whole
+  # way, so neither is ever interrupted by a glide.
+  def self.update_glide args, owl, distance
+    # Holding station rather than crossing anything. Clear the burst so the
+    # next real crossing starts on wingbeat, whatever was running before.
+    return owl.gliding = false if owl.speed <= 0.0
+
+    return owl.gliding = false if owl.gliding && args.state.tick_count >= owl.glide_until
+    return if owl.gliding
+
+    # Only worth coasting partway through a genuinely long crossing. A short
+    # catch-up hop is all wingbeat.
+    return if distance < Config::OWL_GLIDE_MIN_DISTANCE
+
+    # Rolled at the end of a full stroke only. That both stops the wings
+    # freezing mid-beat and guarantees at least one complete stroke between
+    # glides, since flap_ticks is reset by the glide it just came out of and
+    # has to climb all the way round again before it can read zero.
+    return unless owl.flap_ticks == 0
+    return if rand > Config::OWL_GLIDE_CHANCE
+
+    owl.gliding     = true
+    owl.glide_until = args.state.tick_count + span(
+      Config::OWL_GLIDE_TICKS_MIN, Config::OWL_GLIDE_TICKS_MAX
+    )
   end
 
   # One full cycle is both halves of the stroke: wings down, then wings up.
@@ -462,7 +510,8 @@ module Owl
   def self.assert_spans_are_ranges!
     [
       ['soar', Config::OWL_SOAR_TICKS_MIN, Config::OWL_SOAR_TICKS_MAX],
-      ['perch', Config::OWL_PERCH_TICKS_MIN, Config::OWL_PERCH_TICKS_MAX]
+      ['perch', Config::OWL_PERCH_TICKS_MIN, Config::OWL_PERCH_TICKS_MAX],
+      ['glide', Config::OWL_GLIDE_TICKS_MIN, Config::OWL_GLIDE_TICKS_MAX]
     ].each do |name, low, high|
       next if high > low
 
@@ -470,9 +519,19 @@ module Owl
     end
   end
 
+  # A glide threshold at or below the slack radius gates nothing: inside the
+  # slack radius the owl is not moving at all, so every crossing it actually
+  # makes would qualify as "long" and the glide would stop being occasional.
+  def self.assert_glide_distance_exceeds_slack!
+    return if Config::OWL_GLIDE_MIN_DISTANCE > Config::OWL_SLACK_RADIUS
+
+    raise "OWL_GLIDE_MIN_DISTANCE (#{Config::OWL_GLIDE_MIN_DISTANCE}) must exceed OWL_SLACK_RADIUS (#{Config::OWL_SLACK_RADIUS})"
+  end
+
   assert_arrive_distance_exceeds_speed!
   assert_min_speed_arrives!
   assert_slack_exceeds_arrive_distance!
   assert_perch_reach_exceeds_slack!
+  assert_glide_distance_exceeds_slack!
   assert_spans_are_ranges!
 end

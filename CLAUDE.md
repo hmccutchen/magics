@@ -118,8 +118,11 @@ These matter more here than they would on a settled codebase, precisely
 - Owl behaviour is a four-state machine: `:soaring` (the default -- glides
   high, slack-follows the player), `:descending`, `:perched`, `:climbing`.
   It lands only on pushables and the creature, NEVER the player, and it RIDES
-  what it lands on. Wingbeats are reserved for landing and taking off, so
-  catching up across open air is a glide. A perch ends on a randomised timer
+  what it lands on. It beats its wings whenever it is actually going
+  somewhere -- catching up, descending, climbing; the motionless glide is an
+  occasional burst partway through a LONG crossing (`Owl.update_glide`, gated
+  on `OWL_GLIDE_MIN_DISTANCE` and rolled once per completed stroke), plus
+  holding station inside the slack radius. A perch ends on a randomised timer
   or when the player walks far enough away -- following stays dominant.
 - `Assets` descriptors may now carry `height_px`, defaulting to
   `CHARACTER_HEIGHT_PX`. Not everything is person-sized; the owl would

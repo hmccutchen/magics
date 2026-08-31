@@ -349,6 +349,31 @@ module Config
   # slow-drifting owl driven by distance would flap in slow motion.
   OWL_FLAP_TICKS = 8
 
+  # --- Gliding --------------------------------------------------------------
+  #
+  # Flapping is the DEFAULT in the air: a bird crossing open ground beats its
+  # wings, so the held soaring pose is the exception rather than the rule. It
+  # is reserved for long crossings, where the owl reads as coasting once it is
+  # properly under way.
+
+  # How big a gap the owl must still have left to close before a glide may
+  # start at all. Must exceed OWL_SLACK_RADIUS -- below that the owl does not
+  # move, so a threshold under it would not gate anything -- asserted in
+  # owl.rb. This is the number to raise if glides feel too common.
+  OWL_GLIDE_MIN_DISTANCE = 300.0
+
+  # Chance of breaking into a glide, rolled once per COMPLETED wingbeat rather
+  # than every tick, so it never breaks off mid-stroke and the number means
+  # something reasonable-about: "per stroke", not "per frame".
+  OWL_GLIDE_CHANCE = 0.35
+
+  # How long a glide holds once it starts. Randomised for the same reason the
+  # soaring and perching spans are, and timed rather than distance-gated: a
+  # glide that ended the instant the remaining gap dropped back under
+  # OWL_GLIDE_MIN_DISTANCE would snap to flapping in the middle of a coast.
+  OWL_GLIDE_TICKS_MIN = 48
+  OWL_GLIDE_TICKS_MAX = 120
+
   # How far past the owl the player must be before it turns to look the other
   # way. Without a deadband the owl would flick between facings every frame
   # while he walks along its x.
