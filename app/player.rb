@@ -150,7 +150,7 @@ module Player
     tier = tier args
 
     return push_drawable args, tier if args.state.player.pushing
-    return stand_drawable args, tier if tier == :rumour
+    return stand_drawable args, tier if tier == :rumour && !args.state.player.moving
 
     {
       entity: args.state.player,
@@ -161,8 +161,16 @@ module Player
     }
   end
 
-  # The 2-bit traveller, standing or walking. One held pose either way: there
-  # is no 2-bit walk cycle, and at this fidelity there is not supposed to be.
+  # The 2-bit traveller STANDING STILL. Walking has its own cycle and goes
+  # through the ordinary walk path above; this is only what he does when he
+  # stops.
+  #
+  # He therefore turns to face a real direction the moment he stops moving,
+  # including north and south-west, and returns to the mirrored side view as
+  # soon as he walks again. That swap is on purpose -- these eight are the
+  # only true directional art in the game -- but it IS a visible change of
+  # angle on stopping, and it is the thing to look at first if the 2-bit
+  # traveller reads oddly.
   #
   # facing_x and facing_depth persist while he stands still, so he keeps
   # looking the way he last walked rather than snapping back to a default.

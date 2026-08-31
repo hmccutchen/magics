@@ -93,15 +93,21 @@ These matter more here than they would on a settled codebase, precisely
   that does. The step-up hangs off `Seams.revealed?` (permanent), NOT
   `Pattern.complete?` (recomputed live from where the blocks sit, and false
   again if one is shoved back out).
-- At `:rumour` he does not animate: `Assets::STAND_POSE_FILES` gives eight held
-  directional poses (`sprites/player/myth/2-bit-idle/`) used for standing AND
-  walking. That is the design, not a gap -- at 2-bit there is not enough of him
-  recorded to show him moving. These are the only real 8-direction art in the
-  game; the 8-bit walk cycle is still one side view mirrored, so the 2-bit
-  traveller is the only one who genuinely faces north or south-west. They
-  declare NO myth tier on purpose: there is no 8-bit standing pose in the
-  design (8-bit idle is walk frame 0), so there is nothing honest to fall back
-  to, and Assets raises loudly if the invariant is ever broken.
+- `:rumour` has both a walk cycle and idle art. WALKING uses `player_walk` at
+  its rumour tier (`2-bit-idle/2-bit-walking/frame_000..007`), the same eight
+  frames/one-mirrored-side-view shape as the myth cycle, so cadence carries
+  across the step-up and only fidelity changes. Its `figure_h` is 27, not the
+  myth cycle's 26, because that is what the art measures -- declaring it
+  truthfully is what makes both cycles draw the figure at the same 90px.
+- STANDING STILL at `:rumour` uses `Assets::STAND_POSE_FILES`: eight held
+  directional poses in `sprites/player/myth/2-bit-idle/`. These are the only
+  real 8-direction art in the game, so the 2-bit traveller is the only one who
+  genuinely faces north or south-west -- he turns to a true direction when he
+  stops and returns to the mirrored side view when he walks. That angle swap
+  on stopping is intended, and is the first thing to look at if he reads oddly.
+  The stand poses declare NO myth tier on purpose: there is no 8-bit standing
+  pose in the design (8-bit idle is walk frame 0), so there is nothing honest
+  to fall back to, and Assets raises loudly if the invariant is ever broken.
 - PUSHING is deliberately held back at 8-bit: the push poses declare no
   `:rumour` tier, so Assets falls back and logs it once. Drawing 2-bit push art
   and declaring it is the whole change when that art exists.

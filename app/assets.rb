@@ -34,6 +34,32 @@ module Assets
   # compass direction, not an animation.
   ASSETS = {
     player_walk: {
+      # The 2-bit walk. Same shape as the myth cycle -- eight frames on a
+      # 40x40 canvas, one side view mirrored for both directions -- so the
+      # traveller keeps his cadence across the step-up and only his fidelity
+      # changes.
+      #
+      # figure_h is 27 rather than the myth cycle's 26 because that is what
+      # this art actually measures. The value is "how tall is the figure in
+      # these files", and declaring it truthfully is what makes two differently
+      # drawn cycles come out the same size on screen: 90px of traveller
+      # either way. Copying 26 across would have drawn him 3px taller at 2-bit
+      # than at 8-bit, which would read as him shrinking when he resolves.
+      #
+      # One value for all eight even though they measure 26 to 28, and one
+      # foot_pad even though they measure 6 to 7 -- both modal. Same reasoning
+      # as the push poses: a per-file figure height would resize him as his
+      # legs passed. The art's own 2px of wobble stays, deliberately; it is a
+      # property of the drawing, not something to average away here.
+      rumour: {
+        dir: 'sprites/player/myth/2-bit-idle/2-bit-walking',
+        frames: 8,
+        canvas_w: 40,
+        canvas_h: 40,
+        figure_h: 27,
+        foot_pad: 7
+      },
+
       myth: {
         dir: 'sprites/player/myth',
         frames: 8,
