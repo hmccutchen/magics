@@ -277,9 +277,21 @@ module Config
 
   # Drawn height of the owl's figure, in pixels at full scale. The owl is the
   # first thing in this world that is not person-sized, so it carries its own
-  # target rather than sharing CHARACTER_HEIGHT_PX. Tune this if it reads
-  # wrong beside the traveller.
-  OWL_HEIGHT_PX = 34
+  # target rather than sharing CHARACTER_HEIGHT_PX.
+  #
+  # 40 is not a taste value: it is the one number that makes the owl render
+  # 1:1. Assets scales a sprite by height_px / figure_h, and every owl pose
+  # declares figure_h 40, so 40 here is a factor of exactly 1.00 -- one art
+  # pixel to one screen pixel, with nothing resampled.
+  #
+  # It was 34, a factor of 0.85. That made the owl the ONLY asset in the game
+  # being drawn SMALLER than it was authored: a 2px feature landed on 1.7
+  # screen px, so detail was being thrown away before it reached the screen.
+  # Upscaling elsewhere is forgiving; downscaling pixel art is not.
+  #
+  # Moving this off 40 puts the owl back on a fractional scale, so retune it
+  # only together with the poses' figure_h.
+  OWL_HEIGHT_PX = 40
 
   # Footprint. The owl collides with nothing -- it is in the air -- so this is
   # only used to keep its anchor a sensible distance from the screen edge.

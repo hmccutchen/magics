@@ -221,7 +221,17 @@ These matter more here than they would on a settled codebase, precisely
   or when the player walks far enough away -- following stays dominant.
 - `Assets` descriptors may now carry `height_px`, defaulting to
   `CHARACTER_HEIGHT_PX`. Not everything is person-sized; the owl would
-  otherwise be drawn 90px tall. `Renderer.sprite_rect` is the one answer to
+  otherwise be drawn 90px tall.
+- `OWL_HEIGHT_PX` is 40 because that is the ONE value that renders the owl
+  1:1: Assets scales by `height_px / figure_h`, and every owl pose declares
+  `figure_h` 40. It was 34 (a factor of 0.85), which made the owl the only
+  asset in the game drawn SMALLER than authored -- detail was being discarded
+  before it reached the screen. Retune it only alongside the poses' figure_h.
+- GOTCHA: `height_px: Config::OWL_HEIGHT_PX` is captured when `assets.rb`
+  loads, into `Assets::TABLE`. Hot-reloading `config.rb` alone therefore does
+  NOT change the drawn size -- touch `assets.rb` (or restart) to see it. This
+  bit once already; the constant looked applied while the owl still drew at
+  the old scale. `Renderer.sprite_rect` is the one answer to
   "where was this drawn", used by the renderer and by the owl's click target
   and speech label so they cannot drift apart from the art.
 - The owl speaks (`owl_speech.rb`) on exactly two things: the player CLICKING
