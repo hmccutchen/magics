@@ -341,13 +341,22 @@ module Config
   # rather than snapping the moment the mode flips.
   OWL_LIFT_EASE = 0.08
 
-  # Ticks each half of the wingbeat is held for.
+  # Ticks in ONE COMPLETE wingbeat, down and back up.
+  #
+  # This used to be "ticks each half is held for", doubled in owl.rb, because
+  # the beat was two poses. It is nine frames now and has no halves, so the
+  # constant means the whole stroke and owl.rb no longer doubles it.
+  #
+  # 36 is deliberately divisible by the nine frames: each is held for exactly
+  # four ticks, so no frame gets an extra tick and the stroke reads evenly.
+  # Retuning it is the one knob for how languid the owl looks -- lower is more
+  # urgent, higher is more of a glide with wings.
   #
   # Deliberately a TIMER, unlike the player's walk cycle, which is driven by
   # ground covered so his feet cannot slide. Wings are not feet: a bird's beat
   # rate has nothing to do with how fast it is crossing the ground, and a
   # slow-drifting owl driven by distance would flap in slow motion.
-  OWL_FLAP_TICKS = 8
+  OWL_FLAP_CYCLE_TICKS = 36
 
   # --- Gliding --------------------------------------------------------------
   #

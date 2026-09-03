@@ -397,9 +397,11 @@ module Owl
     )
   end
 
-  # One full cycle is both halves of the stroke: wings down, then wings up.
+  # The whole stroke, straight from the constant. It used to be doubled here
+  # because the beat was two poses and the constant counted one of them; the
+  # nine-frame stroke has no halves to double.
   def self.beat_length
-    Config::OWL_FLAP_TICKS * 2
+    Config::OWL_FLAP_CYCLE_TICKS
   end
 
   # --- Drawing --------------------------------------------------------------

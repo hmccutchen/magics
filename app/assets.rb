@@ -169,11 +169,21 @@ module Assets
   # the same folders; switching one on is a row here, not new code.
   #
   # Three poses, because the owl is in three visibly different situations:
-  # perched on something, gliding above the traveller, and beating its wings
-  # to get down to a perch or back up off one. Flight is the only animated
-  # one, and it is a two-frame beat built from files in DIFFERENT folders --
-  # which is why `dir` stops at the tier and the folder is part of each
-  # filename. Order matters: wings down, then wings up.
+  # perched on something, gliding above the traveller, and beating its wings.
+  # Flight is the only animated one: a full nine-frame stroke, wings sweeping
+  # down below the body and back up above it, returning to where it started so
+  # the cycle loops.
+  #
+  # The wingbeat lives in its own folder per facing and is NUMBERED, unlike
+  # every other owl pose, which is a single held frame named by compass
+  # direction. `dir` still stops at the tier and the folder is part of each
+  # filename -- that is what lets one descriptor pull frames from a folder the
+  # others do not use.
+  #
+  # frame_000 is the pose the owl was already holding (the old `flying` art),
+  # so a beat that begins from a glide starts on the pose already on screen
+  # rather than snapping into the middle of a stroke. Same reasoning as the
+  # push poses leading with the planted frame.
   #
   # foot_pad is PER POSE, because these canvases are registered differently:
   # the soaring bird sits 8 rows off the bottom where the perched one sits 4.
@@ -186,19 +196,42 @@ module Assets
   # scale, so varying it would resize the bird as it changed pose. 40 is the
   # perched body; the soaring figure is shorter and much wider, and is
   # supposed to look that way.
+  # Frames in one full wingbeat. The owl code never learns this number --
+  # `frame_path` buckets a normalised 0.0..1.0 across however many files a
+  # descriptor has -- so changing it here is the whole change.
+  WINGBEAT_FRAMES = 9
+
+  # Padded by hand the same way frame_paths does it, and for the same reason:
+  # this runs in mruby, whose stdlib coverage is verified rather than assumed.
+  def self.wingbeat_files facing
+    (0...WINGBEAT_FRAMES).map do |index|
+      padded = index.to_s
+      padded = "0#{padded}" while padded.length < 3
+      "wingbeat/#{facing}/frame_#{padded}.png"
+    end
+  end
+
   OWL_POSES = {
     owl_perched_east: { files: ['idle/east.png'],    foot_pad: 4 },
     owl_perched_west: { files: ['idle/west.png'],    foot_pad: 4 },
     owl_soaring_east: { files: ['soaring/east.png'], foot_pad: 8 },
     owl_soaring_west: { files: ['soaring/west.png'], foot_pad: 8 },
 
+    # foot_pad 6 rather than the old 3, measured off the new frames: the bird
+    # RISES AND FALLS through the stroke (the generated cycle moves the whole
+    # body, not just the wings), so its feet sit higher in the canvas on
+    # average than the old two-frame art did. One value for all nine on
+    # purpose -- a per-frame pad would cancel that bob out, which is the part
+    # that makes the flight look worked for. It also sits much closer to the
+    # soaring pose's 8, so the bird no longer steps up when a glide breaks
+    # into a beat.
     owl_flying_east: {
-      files: ['flying/east.png', 'flapping-wings/east.png'],
-      foot_pad: 3
+      files: wingbeat_files('east'),
+      foot_pad: 6
     },
     owl_flying_west: {
-      files: ['flying/west.png', 'flapping-wings/west.png'],
-      foot_pad: 3
+      files: wingbeat_files('west'),
+      foot_pad: 6
     }
   }
 

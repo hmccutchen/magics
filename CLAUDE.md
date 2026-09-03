@@ -139,13 +139,29 @@ These matter more here than they would on a settled codebase, precisely
   (x, depth) is the ground it is above, and `lift` raises only where it is
   drawn, so depth sorting is untouched.
 - The owl uses real sprite art (myth tier) in three poses -- perched, soaring,
-  and a two-frame wingbeat -- east and west only, since it turns to look at
-  the traveller. The other six directions are drawn and sitting in
-  `sprites/owl/myth/`; switching one on is a row in `Assets::OWL_POSES`, not
-  new code. `foot_pad` is per pose there because the canvases are registered
-  differently; `figure_h` is shared, so the bird never changes size. The
-  wingbeat is on a TIMER, unlike the player's distance-driven walk cycle,
+  and a NINE-frame wingbeat -- east and west only, since it turns to look at
+  the traveller. The wingbeat lives in `sprites/owl/myth/wingbeat/<facing>/`
+  as a numbered cycle (PixelLab `animate_image`, seeded from the old `flying`
+  frame, so `frame_000` IS that pose and a beat starting from a glide begins
+  on what is already on screen). It supersedes the old two-frame
+  `flying` + `flapping-wings` pair for east/west; those folders stay only as
+  the single-frame reserve for the other six directions, which would need
+  regenerating as cycles to be usable now.
+- Frame count is free: `Assets.frame_path` buckets a normalised 0.0..1.0
+  across however many files a descriptor lists, so the owl code never learns
+  there are nine. `Assets::WINGBEAT_FRAMES` is the only place it is written.
+- The wingbeat is on a TIMER, unlike the player's distance-driven walk cycle,
   because a bird's beat rate has nothing to do with its ground speed.
+  `OWL_FLAP_CYCLE_TICKS` (36) is ONE COMPLETE stroke -- it used to be
+  `OWL_FLAP_TICKS` (8) meaning one half, doubled in owl.rb, which stopped
+  meaning anything once the beat had no halves. 36 divides by 9, so each
+  frame is held exactly four ticks. It is the one knob for how languid the
+  owl looks.
+- `foot_pad` is per pose because the canvases are registered differently;
+  `figure_h` is shared, so the bird never changes size. The wingbeat declares
+  6 (measured off the frames, not guessed): the generated cycle moves the
+  whole BODY up and down, not just the wings, so one pad for all nine frames
+  is what lets that bob show instead of cancelling it.
 - Owl behaviour is a four-state machine: `:soaring` (the default -- glides
   high, slack-follows the player), `:descending`, `:perched`, `:climbing`.
   It lands only on pushables and the creature, NEVER the player, and it RIDES
