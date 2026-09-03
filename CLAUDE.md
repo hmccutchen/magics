@@ -183,15 +183,39 @@ These matter more here than they would on a settled codebase, precisely
   player with slack rather than a fixed offset. It is airborne: its
   (x, depth) is the ground it is above, and `lift` raises only where it is
   drawn, so depth sorting is untouched.
-- The owl uses real sprite art (myth tier) in three poses -- perched, soaring,
-  and a NINE-frame wingbeat -- east and west only, since it turns to look at
-  the traveller. The wingbeat lives in `sprites/owl/myth/wingbeat/<facing>/`
-  as a numbered cycle (PixelLab `animate_image`, seeded from the old `flying`
-  frame, so `frame_000` IS that pose and a beat starting from a glide begins
-  on what is already on screen). It supersedes the old two-frame
-  `flying` + `flapping-wings` pair for east/west; those folders stay only as
-  the single-frame reserve for the other six directions, which would need
-  regenerating as cycles to be usable now.
+- The owl has TWO EYES side by side, in every pose. This is not decoration:
+  the doc calls the owl "the part of a person that already knows the truth,
+  speaking from a vantage point the traveler hasn't reached yet", and the eyes
+  make that literal. They are there from the FIRST FRAME and never change --
+  per the doc the owl does not become more honest as bit-depth rises, only the
+  player's capacity to understand it does. Do NOT gate them behind progression.
+- Two eyes is the MAXIMUM the art can carry. Measured: the head is 22px wide
+  in profile and one eye assembly (pale facial disc + amber iris + dark pupil)
+  is 11px, so two fill it exactly. Three or four "eyes around the head" was
+  tried and is geometrically impossible without a much larger head -- the
+  generator shrinks them until they read as beading. The eyes-all-around idea
+  survives in the PERCHED BACK VIEWS (`idle/north*.png`), which show amber eyes
+  on the back of the skull.
+- The owl art was REBUILT from a PixelLab character
+  (`create_character` mode v3, 8 directions, seeded from a two-eye reference).
+  Per-frame editing was tried first and failed: each frame reinterprets the
+  head, so poses stopped matching each other. The v3 character pipeline is
+  what produces one consistent bird -- and it is cheap (1 generation for all
+  eight rotations).
+- `animate_character` does NOT work for this owl. Asked for a wingbeat it
+  produced a walk-like weight shift, and asked for a glide it produced an idle
+  breathe -- it cannot invent flight from a perched pose. The wingbeat comes
+  from `animate_image` seeded from an actual FLYING frame instead, which is the
+  technique that works. Remember this before spending generations again.
+- Poses: perched (`idle/`, all 8 directions, figure_h 40 foot_pad 4), soaring
+  (`soaring/`, east+west, foot_pad 8) and a NINE-frame wingbeat
+  (`wingbeat/<facing>/`, foot_pad 5 -- the MEDIAN of frames measuring 2 to 8,
+  one value for all nine so the body's rise and fall through the stroke shows
+  instead of being cancelled). Only east and west are wired, since the owl
+  turns to look at the traveller; the other six perched directions are drawn
+  and switching one on is a row in `Assets::OWL_POSES`, not new code.
+- `flying/` and `flapping-wings/` (the old two-frame beat) are superseded and
+  now referenced by nothing.
 - Frame count is free: `Assets.frame_path` buckets a normalised 0.0..1.0
   across however many files a descriptor lists, so callers never learn how
   many there are. `Assets::WINGBEAT_FRAMES` and `PUSH_FRAMES` are the only

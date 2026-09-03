@@ -173,21 +173,19 @@ module Assets
     owl_soaring_east: { files: ['soaring/east.png'], foot_pad: 8 },
     owl_soaring_west: { files: ['soaring/west.png'], foot_pad: 8 },
 
-    # foot_pad 6 rather than the old 3, measured off the new frames: the bird
-    # RISES AND FALLS through the stroke (the generated cycle moves the whole
-    # body, not just the wings), so its feet sit higher in the canvas on
-    # average than the old two-frame art did. One value for all nine on
-    # purpose -- a per-frame pad would cancel that bob out, which is the part
-    # that makes the flight look worked for. It also sits much closer to the
-    # soaring pose's 8, so the bird no longer steps up when a glide breaks
-    # into a beat.
+    # foot_pad 5, the MEDIAN of the nine frames (they measure 2 to 8). The
+    # bird rises and falls through the stroke -- the generated cycle moves the
+    # whole body, not just the wings -- and one value for all nine is
+    # deliberate: a per-frame pad would cancel that bob out, which is the part
+    # that makes the flight look worked for. It also sits near the soaring
+    # pose's 8, so the bird does not step up when a glide breaks into a beat.
     owl_flying_east: {
       files: numbered_files('wingbeat/east', WINGBEAT_FRAMES),
-      foot_pad: 6
+      foot_pad: 5
     },
     owl_flying_west: {
       files: numbered_files('wingbeat/west', WINGBEAT_FRAMES),
-      foot_pad: 6
+      foot_pad: 5
     }
   }
 
