@@ -216,6 +216,26 @@ These matter more here than they would on a settled codebase, precisely
   and switching one on is a row in `Assets::OWL_POSES`, not new code.
 - `flying/` and `flapping-wings/` (the old two-frame beat) are superseded and
   now referenced by nothing.
+- The owl art is FLATTENED by `tools/simplify_owl.py`
+  (`python3 tools/simplify_owl.py sprites/owl/myth`). Re-run it after
+  regenerating any owl sprite; it rewrites in place and git history is the
+  record of what the generator produced. PixelLab returns smooth, heavily
+  shaded art -- 241 colours across the 34 frames -- where the traveller's own
+  art is 24 colours and 39% flat black outline, so beside him the owl read as
+  rendered rather than pixelled. The tool snaps every pixel to the 8 most-used
+  colours, computed ACROSS ALL FRAMES so none invents its own shading.
+- Palette selection is frequency order with a MINIMUM SEPARATION, not plain
+  top-8. The art carries several near-identical blacks, each common enough to
+  claim a slot; without the separation rule the palette came back as five
+  blacks and the owl lost its entire light range. That bug reached disk once.
+- The owl's EYES are a pale disc with a dark pupil and nothing between,
+  matching how the traveller's eyes are drawn -- his carry no iris colour
+  either. The amber iris drops out for free as a minority colour; the tool
+  then binarises each eye, because the snap alone leaves mid-tones that read
+  as a smudge. Eyes are found as small, high-up runs of the palest colour.
+- The owl's amber eyes and its orange beak are THE SAME HUE, so no colour rule
+  can keep one and drop the other. Losing both is deliberate and matches the
+  traveller. Restoring the orange beak means hand-placing pixels.
 - Frame count is free: `Assets.frame_path` buckets a normalised 0.0..1.0
   across however many files a descriptor lists, so callers never learn how
   many there are. `Assets::WINGBEAT_FRAMES` and `PUSH_FRAMES` are the only
