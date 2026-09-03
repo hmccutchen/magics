@@ -231,9 +231,10 @@ These matter more here than they would on a settled codebase, precisely
   loads, into `Assets::TABLE`. Hot-reloading `config.rb` alone therefore does
   NOT change the drawn size -- touch `assets.rb` (or restart) to see it. This
   bit once already; the constant looked applied while the owl still drew at
-  the old scale. `Renderer.sprite_rect` is the one answer to
-  "where was this drawn", used by the renderer and by the owl's click target
-  and speech label so they cannot drift apart from the art.
+  the old scale.
+- `Renderer.sprite_rect` is the one answer to "where was this drawn", used by
+  the renderer and by the owl's click target and speech label so they cannot
+  drift apart from the art.
 - The owl speaks (`owl_speech.rb`) on exactly two things: the player CLICKING
   it, and the story having a hint to offer -- today only the doc's seam beat
   ("once a seam is revealed, the owl hints at how to activate it"). It does
