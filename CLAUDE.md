@@ -127,9 +127,26 @@ These matter more here than they would on a settled codebase, precisely
   is now UNREFERENCED. It was three tonal levels of pure grey spread over 16
   noisy colours -- neither 2-bit nor tinted -- which is why the low tier is
   derived instead. Safe to delete.
-- PUSHING is deliberately held back at 8-bit: the push poses declare no
-  `:rumour` tier, so Assets falls back and logs it once. Drawing 2-bit push art
-  and declaring it is the whole change when that art exists.
+- PUSHING is a NINE-frame stride per direction
+  (`sprites/player/myth/push/<direction>/`), on a 48 canvas where the rest of
+  the player art is 32 or 40 -- geometry is per descriptor and `figure_h`
+  normalises the drawn size, so he still draws at 90px. It was two alternating
+  poses before, which could not read as walking: his feet arrived and left
+  without passing through anything.
+- `PUSH_CYCLE_DISTANCE` is 117, derived not eyeballed: he pushes at
+  `PLAYER_SPEED_X * PUSH_SPEED_FACTOR` (~2.2px/tick), so nine frames at the
+  walk's ~5.9 ticks/frame needs ~117px of ground. It was 84, which across nine
+  frames ran the cycle FASTER than his walk while he is meant to be straining.
+  Lower it for a more hurried push, raise it for a heavier one.
+- Pushing is no longer held back at 8-bit. It declares both tiers from the
+  same nine frames (the rumour set derived by `tools/build_rumour.py`), because
+  once everything else stepped down, reverting to full colour on touching a
+  crate read as a rendering bug rather than as a tier.
+- `sprites/player/myth/pushing/` and the top-level directional
+  `sprites/player/myth/<direction>.png` stills are no longer registered in
+  Assets. The stills are still the SOURCE `tools/build_rumour.py` derives the
+  2-bit stand poses from, so they must stay; `pushing/` is superseded and safe
+  to delete.
 - The switch from 2-bit to 8-bit is currently INSTANT. Making it gradual is the
   outstanding piece; `drawable[:alpha]` is forwarded by `Renderer.push_sprite`
   but set by nobody, so a crossfade has a hook waiting.
@@ -167,8 +184,11 @@ These matter more here than they would on a settled codebase, precisely
   the single-frame reserve for the other six directions, which would need
   regenerating as cycles to be usable now.
 - Frame count is free: `Assets.frame_path` buckets a normalised 0.0..1.0
-  across however many files a descriptor lists, so the owl code never learns
-  there are nine. `Assets::WINGBEAT_FRAMES` is the only place it is written.
+  across however many files a descriptor lists, so callers never learn how
+  many there are. `Assets::WINGBEAT_FRAMES` and `PUSH_FRAMES` are the only
+  places those counts are written. `Assets.numbered_files` names a numbered
+  cycle living in its own subfolder (the wingbeat and the push both do);
+  `frame_paths` does the same for a cycle sitting directly in `dir`.
 - The wingbeat is on a TIMER, unlike the player's distance-driven walk cycle,
   because a bird's beat rate has nothing to do with its ground speed.
   `OWL_FLAP_CYCLE_TICKS` (36) is ONE COMPLETE stroke -- it used to be

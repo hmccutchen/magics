@@ -184,6 +184,7 @@ def reduce_sprite(pixels, width, height):
 DIRECTIONS = ['north', 'north-east', 'east', 'south-east',
               'south', 'west', 'north-west']
 WALK_FRAMES = 8
+PUSH_FRAMES = 9
 
 
 def main():
@@ -194,6 +195,12 @@ def main():
     jobs += [(f'{root}/myth/frame_{i:03d}.png',
               f'{root}/rumour/walk/frame_{i:03d}.png')
              for i in range(WALK_FRAMES)]
+    # Pushing too, so he is not half-resolved: a 2-bit traveller who reverts
+    # to full colour the moment he leans on a crate reads as a bug, not as a
+    # tier.
+    jobs += [(f'{root}/myth/push/{d}/frame_{i:03d}.png',
+              f'{root}/rumour/push/{d}/frame_{i:03d}.png')
+             for d in DIRECTIONS for i in range(PUSH_FRAMES)]
 
     for source, target in jobs:
         width, height, pixels = read_png(source)

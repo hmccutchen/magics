@@ -109,16 +109,26 @@ module Assets
     player_push_north_west: 'north-west'
   }
 
+  # Both tiers, from the same nine frames -- the rumour set is derived from
+  # the myth set by tools/build_rumour.py, so the geometry below is shared
+  # because it is measured off art that came from the same drawing.
+  #
+  # Pushing was deliberately held back at 8-bit while the low tier had no push
+  # art. It has one now, and being the last thing that did not step down made
+  # him revert to full colour the moment he leaned on a crate, which read as a
+  # rendering bug rather than as a tier.
   PUSH_POSE_DIRS.each do |name, direction|
+    geometry = {
+      files: numbered_files("push/#{direction}", PUSH_FRAMES),
+      canvas_w: 48,
+      canvas_h: 48,
+      figure_h: 26,
+      foot_pad: 11
+    }
+
     ASSETS[name] = {
-      myth: {
-        dir: 'sprites/player/myth',
-        files: numbered_files("push/#{direction}", PUSH_FRAMES),
-        canvas_w: 48,
-        canvas_h: 48,
-        figure_h: 26,
-        foot_pad: 11
-      }
+      rumour: geometry.merge({ dir: 'sprites/player/rumour' }),
+      myth:   geometry.merge({ dir: 'sprites/player/myth' })
     }
   end
 

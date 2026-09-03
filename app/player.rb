@@ -196,11 +196,8 @@ module Player
   # back to the south pose rather than raising if facing is ever a value the
   # table has no row for.
   #
-  # The push poses declare no :rumour art, so while he is 2-bit this asks for
-  # a tier that does not exist and Assets hands back the 8-bit pose, logging
-  # the gap once. That is the intended state, not a bug: pushing is held at
-  # 8-bit until the 2-bit push art is drawn, at which point declaring it in
-  # Assets is the whole change.
+  # Both tiers exist for these now, so a 2-bit traveller pushes in 2-bit. He
+  # used to revert to full colour on touching a crate, which read as a bug.
   def self.push_drawable args, tier
     player = args.state.player
 
