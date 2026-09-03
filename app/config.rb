@@ -279,19 +279,26 @@ module Config
   # first thing in this world that is not person-sized, so it carries its own
   # target rather than sharing CHARACTER_HEIGHT_PX.
   #
-  # 40 is not a taste value: it is the one number that makes the owl render
-  # 1:1. Assets scales a sprite by height_px / figure_h, and every owl pose
-  # declares figure_h 40, so 40 here is a factor of exactly 1.00 -- one art
-  # pixel to one screen pixel, with nothing resampled.
+  # 48 is a taste value, and the only part of this number that is: it draws the
+  # bird 20% larger than its art, because at 1:1 it read as a small thing
+  # beside the traveller rather than as company.
   #
-  # It was 34, a factor of 0.85. That made the owl the ONLY asset in the game
-  # being drawn SMALLER than it was authored: a 2px feature landed on 1.7
-  # screen px, so detail was being thrown away before it reached the screen.
-  # Upscaling elsewhere is forgiving; downscaling pixel art is not.
+  # The FLOOR of 40 is not taste. Assets scales a sprite by height_px /
+  # figure_h, and every owl pose declares figure_h 40, so 40 is a factor of
+  # exactly 1.00 -- one art pixel to one screen pixel. Below it the owl is
+  # drawn SMALLER than it was authored: it was 34 once, a factor of 0.85, which
+  # landed a 2px feature on 1.7 screen px and threw detail away before it
+  # reached the screen. Upscaling pixel art is forgiving; downscaling is not.
   #
-  # Moving this off 40 puts the owl back on a fractional scale, so retune it
-  # only together with the poses' figure_h.
-  OWL_HEIGHT_PX = 40
+  # Going UP costs something much smaller: 48/40 is 1.2, so one row and column
+  # in five is doubled and the owl's pixels are not perfectly square. Every
+  # other asset here is already on a fractional scale (the traveller is at
+  # 3.462), so that is in keeping rather than new. The only exactly-clean step
+  # above 40 is 80, a factor of 2.00, which is most of the traveller's height.
+  #
+  # Tune freely between 40 and roughly 56. Past that he stops reading as a bird
+  # in the air and starts reading as a second character.
+  OWL_HEIGHT_PX = 48
 
   # Footprint. The owl collides with nothing -- it is in the air -- so this is
   # only used to keep its anchor a sensible distance from the screen edge.
