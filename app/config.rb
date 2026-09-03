@@ -55,11 +55,20 @@ module Config
   # across tiers by construction.
   WALK_CYCLE_DISTANCE = 160.0
 
-  # The same, for the push walk, which is its own cycle with its own feel --
-  # shorter, because the push cycle is only two frames and a long one leaves
-  # him holding each pose long enough to look stuck. Separate from the walk so
-  # the two cadences can be tuned against each other by eye.
-  PUSH_CYCLE_DISTANCE = 84.0
+  # The same, for the push walk, which is its own cycle with its own feel.
+  #
+  # Was 84, chosen when the push was TWO frames and a longer cycle left him
+  # holding each pose long enough to look stuck. That reason is gone: the push
+  # is a nine-frame stride now, and 84 spread over nine frames ran the cycle
+  # at roughly 14fps -- visibly FASTER than his walk, while he is supposed to
+  # be straining against a crate.
+  #
+  # 117 comes from matching the walk's cadence rather than from taste: he
+  # pushes at PLAYER_SPEED_X * PUSH_SPEED_FACTOR (about 2.2px a tick), so nine
+  # frames at the walk's ~5.9 ticks per frame needs about 117px of ground.
+  # Lower it if the push should look more hurried than walking, raise it if it
+  # should look heavier.
+  PUSH_CYCLE_DISTANCE = 117.0
 
   # Footprint: the entity's box on the GROUND PLANE, used for collision.
   # FW is horizontal in pixels; FD is depth in world units. This is deliberately

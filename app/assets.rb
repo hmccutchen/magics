@@ -32,6 +32,21 @@ module Assets
   #
   # The push poses need the second: they are single held frames named by
   # compass direction, not an animation.
+  # Names a numbered cycle sitting in its own folder, RELATIVE to a
+  # descriptor's dir -- which is what lets one asset pull frames from a folder
+  # the others do not use. `frame_paths` below does the same job for a cycle
+  # that lives directly in `dir`.
+  #
+  # Padded by hand for the same reason frame_paths is: this runs in mruby,
+  # whose stdlib coverage is verified rather than assumed.
+  def self.numbered_files dir, count
+    (0...count).map do |index|
+      padded = index.to_s
+      padded = "0#{padded}" while padded.length < 3
+      "#{dir}/frame_#{padded}.png"
+    end
+  end
+
   ASSETS = {
     player_walk: {
       # The 2-bit walk, DERIVED from the myth cycle rather than drawn
@@ -60,46 +75,49 @@ module Assets
     }
   }
 
-  # The push walk. Two frames per direction: the traveller with his feet
-  # planted, and the same traveller mid-stride. Alternating them is what makes
-  # him WALK the crate along instead of sliding it while standing still.
+  # The push walk: a full NINE-frame stride per direction, in its own folder
+  # per direction.
   #
-  # These share a canvas, figure height and foot padding, so they are declared
-  # from one shape rather than sixteen copies of the same four numbers.
-  #
-  # figure_h is 26 for all of them even though the individual frames measure
-  # 25 to 27 -- the walk frames vary the same way and use a single value,
-  # because a per-file figure height would resize the character by a pixel as
-  # he turned or as his legs passed.
-  #
-  # Frame order matters: planted first, so a push that begins from standing
-  # starts on the pose he was already holding rather than snapping into a
+  # It used to be two frames -- feet planted, then mid-stride -- alternating.
+  # That was enough to stop him sliding the crate while standing still, but
+  # two poses is not a walk: his feet arrive and leave without ever passing
+  # through anything, so the legs read as static. Nine frames is an actual
   # stride.
   #
-  # There is no south-west here. The base set never had one, and PUSH_POSES in
-  # player.rb draws it by mirroring south-east -- which mirrors both frames, so
-  # south-west animates like everything else. `pushing/south-west.png` is drawn
-  # and on disk but unused; giving it a real asset needs a matching planted
-  # frame beside it.
-  PUSH_POSE_FILES = {
-    player_push_north:      'north.png',
-    player_push_north_east: 'north-east.png',
-    player_push_east:       'east.png',
-    player_push_south_east: 'south-east.png',
-    player_push_south:      'south.png',
-    player_push_west:       'west.png',
-    player_push_north_west: 'north-west.png'
+  # frame_000 is the old planted pose, so a push that begins from standing
+  # still starts on the pose he was already holding rather than snapping into
+  # the middle of a stride. Same reasoning that leads the owl's wingbeat with
+  # the pose it was gliding on.
+  #
+  # Canvas is 48 here where the old push art was 32 -- these were generated on
+  # the larger canvas and there is no reason to crop them back, since geometry
+  # is per descriptor and figure_h normalises the drawn size anyway. 26 and 11
+  # are measured off the frames.
+  #
+  # Still no south-west: the base set never had one, and PUSH_POSES in
+  # player.rb mirrors south-east, which now mirrors all nine frames so
+  # south-west strides like everything else.
+  PUSH_FRAMES = 9
+
+  PUSH_POSE_DIRS = {
+    player_push_north:      'north',
+    player_push_north_east: 'north-east',
+    player_push_east:       'east',
+    player_push_south_east: 'south-east',
+    player_push_south:      'south',
+    player_push_west:       'west',
+    player_push_north_west: 'north-west'
   }
 
-  PUSH_POSE_FILES.each do |name, file|
+  PUSH_POSE_DIRS.each do |name, direction|
     ASSETS[name] = {
       myth: {
         dir: 'sprites/player/myth',
-        files: [file, "pushing/#{file}"],
-        canvas_w: 32,
-        canvas_h: 32,
+        files: numbered_files("push/#{direction}", PUSH_FRAMES),
+        canvas_w: 48,
+        canvas_h: 48,
         figure_h: 26,
-        foot_pad: 3
+        foot_pad: 11
       }
     }
   end
@@ -175,20 +193,7 @@ module Assets
   # scale, so varying it would resize the bird as it changed pose. 40 is the
   # perched body; the soaring figure is shorter and much wider, and is
   # supposed to look that way.
-  # Frames in one full wingbeat. The owl code never learns this number --
-  # `frame_path` buckets a normalised 0.0..1.0 across however many files a
-  # descriptor has -- so changing it here is the whole change.
   WINGBEAT_FRAMES = 9
-
-  # Padded by hand the same way frame_paths does it, and for the same reason:
-  # this runs in mruby, whose stdlib coverage is verified rather than assumed.
-  def self.wingbeat_files facing
-    (0...WINGBEAT_FRAMES).map do |index|
-      padded = index.to_s
-      padded = "0#{padded}" while padded.length < 3
-      "wingbeat/#{facing}/frame_#{padded}.png"
-    end
-  end
 
   OWL_POSES = {
     owl_perched_east: { files: ['idle/east.png'],    foot_pad: 4 },
@@ -205,11 +210,11 @@ module Assets
     # soaring pose's 8, so the bird no longer steps up when a glide breaks
     # into a beat.
     owl_flying_east: {
-      files: wingbeat_files('east'),
+      files: numbered_files('wingbeat/east', WINGBEAT_FRAMES),
       foot_pad: 6
     },
     owl_flying_west: {
-      files: wingbeat_files('west'),
+      files: numbered_files('wingbeat/west', WINGBEAT_FRAMES),
       foot_pad: 6
     }
   }
