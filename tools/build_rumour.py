@@ -190,7 +190,11 @@ PUSH_FRAMES = 9
 def main():
     root = sys.argv[1] if len(sys.argv) > 1 else 'sprites/player'
 
-    jobs = [(f'{root}/myth/{d}.png', f'{root}/rumour/stand/{d}.png')
+    # The stand poses come from myth/stand/, which is TRUE idle art: arms down
+    # at his sides. The top-level myth/<direction>.png stills are not idle --
+    # they are the braced "feet planted" push poses, and deriving standing
+    # from them left the 2-bit traveller shoving a crate that was not there.
+    jobs = [(f'{root}/myth/stand/{d}.png', f'{root}/rumour/stand/{d}.png')
             for d in DIRECTIONS]
     jobs += [(f'{root}/myth/frame_{i:03d}.png',
               f'{root}/rumour/walk/frame_{i:03d}.png')

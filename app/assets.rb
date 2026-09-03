@@ -132,22 +132,35 @@ module Assets
     }
   end
 
-  # The 2-bit traveller standing still: the myth directional stills, reduced.
+  # The 2-bit traveller standing still: derived from `myth/stand/`, which is
+  # TRUE idle art -- arms hanging at his sides.
+  #
+  # These used to come from the top-level `myth/<direction>.png` stills, which
+  # are NOT idle poses: they are the braced "feet planted" first frame of each
+  # push, so a standing 2-bit traveller was shoving a crate that was not there.
   #
   # SEVEN, not eight -- the base set has never had a south-west, so STAND_POSES
-  # in player.rb mirrors south-east for it, exactly as PUSH_POSES does. Drawing
-  # a real south-west would give both tiers an eighth at once.
+  # in player.rb mirrors south-east for it, exactly as PUSH_POSES does.
   #
-  # Same 32x32 / figure_h 26 / foot_pad 3 geometry as the myth stills they come
-  # from, measured rather than assumed.
+  # figure_h and foot_pad are PER POSE here, unlike everywhere else, and both
+  # are measured off the files. The poses genuinely differ in height by up to
+  # 4px (the hood sits higher in some directions), so one shared figure_h would
+  # swing his drawn height between about 87 and 97px as he turned. Declaring
+  # each pose's real height draws every one at exactly CHARACTER_HEIGHT_PX
+  # instead, so he keeps his size while turning.
+  #
+  # This is safe for the same reason the owl's per-pose foot_pad is: these
+  # never share an animation cycle, so the differences can never show up as a
+  # jitter between consecutive frames. Do NOT copy the pattern to the walk or
+  # push cycles, where per-frame values would flatten out the art's own bob.
   STAND_POSE_FILES = {
-    player_stand_north:      'north.png',
-    player_stand_north_east: 'north-east.png',
-    player_stand_east:       'east.png',
-    player_stand_south_east: 'south-east.png',
-    player_stand_south:      'south.png',
-    player_stand_west:       'west.png',
-    player_stand_north_west: 'north-west.png'
+    player_stand_north:      { file: 'north.png',      figure_h: 26, foot_pad: 11 },
+    player_stand_north_east: { file: 'north-east.png', figure_h: 28, foot_pad: 10 },
+    player_stand_east:       { file: 'east.png',       figure_h: 26, foot_pad: 11 },
+    player_stand_south_east: { file: 'south-east.png', figure_h: 30, foot_pad: 11 },
+    player_stand_south:      { file: 'south.png',      figure_h: 26, foot_pad: 11 },
+    player_stand_west:       { file: 'west.png',       figure_h: 28, foot_pad: 10 },
+    player_stand_north_west: { file: 'north-west.png', figure_h: 28, foot_pad: 10 }
   }
 
   # Declared at :rumour ONLY, with no myth tier to fall back to. That is
@@ -157,15 +170,15 @@ module Assets
   # only while he is at :rumour, so the fallback is never reached; if that
   # invariant is ever broken, Assets raises and says so rather than quietly
   # drawing the wrong fidelity.
-  STAND_POSE_FILES.each do |name, file|
+  STAND_POSE_FILES.each do |name, pose|
     ASSETS[name] = {
       rumour: {
         dir: 'sprites/player/rumour/stand',
-        files: [file],
-        canvas_w: 32,
-        canvas_h: 32,
-        figure_h: 26,
-        foot_pad: 3
+        files: [pose[:file]],
+        canvas_w: 48,
+        canvas_h: 48,
+        figure_h: pose[:figure_h],
+        foot_pad: pose[:foot_pad]
       }
     }
   end
