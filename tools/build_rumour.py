@@ -183,22 +183,20 @@ def reduce_sprite(pixels, width, height):
 
 DIRECTIONS = ['north', 'north-east', 'east', 'south-east',
               'south', 'west', 'north-west']
-WALK_FRAMES = 8
+WALK_FRAMES = 8  # frame 0 doubles as the resting pose, at both tiers
 PUSH_FRAMES = 9
 
 
 def main():
     root = sys.argv[1] if len(sys.argv) > 1 else 'sprites/player'
 
-    # The stand poses come from myth/stand/, which is TRUE idle art: arms down
-    # at his sides. The top-level myth/<direction>.png stills are not idle --
-    # they are the braced "feet planted" push poses, and deriving standing
-    # from them left the 2-bit traveller shoving a crate that was not there.
-    jobs = [(f'{root}/myth/stand/{d}.png', f'{root}/rumour/stand/{d}.png')
-            for d in DIRECTIONS]
-    jobs += [(f'{root}/myth/frame_{i:03d}.png',
-              f'{root}/rumour/walk/frame_{i:03d}.png')
-             for i in range(WALK_FRAMES)]
+    # No standing poses. Resting is frame 0 of the walk cycle at BOTH tiers,
+    # which is what keeps him one asset at one scale -- a separate directional
+    # idle set needed its own figure_h per direction and resized him by 15% as
+    # he turned.
+    jobs = [(f'{root}/myth/frame_{i:03d}.png',
+             f'{root}/rumour/walk/frame_{i:03d}.png')
+            for i in range(WALK_FRAMES)]
     # Pushing too, so he is not half-resolved: a 2-bit traveller who reverts
     # to full colour the moment he leans on a crate reads as a bug, not as a
     # tier.

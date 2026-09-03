@@ -86,30 +86,6 @@ module Player
     }
   }
 
-  # Which held pose to draw at :rumour, keyed and shaped exactly like
-  # PUSH_POSES: STAND_POSES[depth facing][horizontal facing] -> [name, mirrored?].
-  #
-  # South-west mirrors south-east for the same reason the push table does: the
-  # base art has never had a south-west, and these poses are derived from it.
-  # Drawing one real south-west would fix both tables at once.
-  STAND_POSES = {
-     1 => {
-      -1 => [:player_stand_north_west, false],
-       0 => [:player_stand_north,      false],
-       1 => [:player_stand_north_east, false]
-    },
-     0 => {
-      -1 => [:player_stand_west,  false],
-       0 => [:player_stand_south, false],
-       1 => [:player_stand_east,  false]
-    },
-    -1 => {
-      -1 => [:player_stand_south_east, true],
-       0 => [:player_stand_south,      false],
-       1 => [:player_stand_south_east, false]
-    }
-  }
-
   # Where the TRAVELLER is on the fidelity ladder, which is not the same
   # question as where the ground under him is.
   #
@@ -146,45 +122,21 @@ module Player
   # It DOES carry a tier, unlike every other drawable, for the reason given on
   # `tier` above -- he is the one thing whose fidelity is not read off the
   # ground he is standing on.
+  #
+  # There is no separate idle branch, at either tier. Standing still is frame 0
+  # of the walk cycle, because `cycle_progress` returns 0.0 when he is not
+  # moving. Both tiers therefore rest in the same pose and, more importantly,
+  # at the SAME SCALE -- one asset, one figure_h, so nothing can resize him.
   def self.drawable args
     tier = tier args
 
     return push_drawable args, tier if args.state.player.pushing
-    return stand_drawable args, tier if tier == :rumour && !args.state.player.moving
 
     {
       entity: args.state.player,
       sprite: :player_walk,
       progress: cycle_progress(args),
       flip: args.state.player.heading_x < 0,
-      tier: tier
-    }
-  end
-
-  # The 2-bit traveller STANDING STILL. Walking has its own cycle and goes
-  # through the ordinary walk path above; this is only what he does when he
-  # stops.
-  #
-  # He turns to face a real direction the moment he stops moving and returns
-  # to the mirrored side view as soon as he walks again. That swap is on
-  # purpose -- the walk cycle is one side view and these are true directions --
-  # but it IS a visible change of angle on stopping, and it is the thing to
-  # look at first if the 2-bit traveller reads oddly.
-  #
-  # facing_x and facing_depth persist while he stands still, so he keeps
-  # looking the way he last walked rather than snapping back to a default.
-  # Both are read through to_i because they are seeded as Floats and set from
-  # input as Integers, and a Hash keyed on 1 does not answer to 1.0.
-  def self.stand_drawable args, tier
-    player = args.state.player
-
-    row  = STAND_POSES[player.facing_depth.to_i] || STAND_POSES[0]
-    pose = row[player.facing_x.to_i] || [:player_stand_south, false]
-
-    {
-      entity: player,
-      sprite: pose[0],
-      flip: pose[1],
       tier: tier
     }
   end

@@ -112,29 +112,22 @@ These matter more here than they would on a settled codebase, precisely
   px of bob the 8-bit art does not have). Foot anchoring reproduces the
   source's registration exactly -- verified: the derived frames carry the same
   `foot_pad` 7/8/7 pattern the myth frames do.
-- WALKING at `:rumour` uses `player_walk`'s rumour tier
-  (`sprites/player/rumour/walk/`); STANDING STILL uses
-  `Assets::STAND_POSE_FILES` (`sprites/player/rumour/stand/`). SEVEN stills,
-  not eight -- south-west has never existed in the base set, so `STAND_POSES`
-  mirrors south-east exactly as `PUSH_POSES` does. Drawing one real south-west
-  would fix both tables at once. He turns to a true direction when he stops
-  and returns to the mirrored side view when walking; that angle swap is
-  intended, and is the first thing to check if he reads oddly.
-- `sprites/player/myth/stand/` is TRUE idle art -- arms hanging at his sides --
-  and is the source the 2-bit stand poses derive from. It exists because the
-  top-level `myth/<direction>.png` stills are NOT idle poses: they are the
-  braced "feet planted" first frame of each push, so deriving standing from
-  them left the traveller shoving a crate that was not there. That art is
-  8-bit and currently registered by NOTHING; giving `player_walk` a directional
-  8-bit idle is now a possible change rather than a missing-art problem.
-- The stand poses carry PER-POSE `figure_h` and `foot_pad`, unlike everything
-  else, both measured off the files. The seven differ in real height by up to
-  4px (the hood sits higher in some directions), so one shared `figure_h` would
-  swing his drawn height between about 87 and 97px as he turned; per-pose
-  values draw every direction at exactly 90px. Safe for the same reason the
-  owl's per-pose `foot_pad` is -- these never share an animation cycle. Do NOT
-  copy the pattern to the walk or push cycles, where per-frame values would
-  flatten the art's own bob.
+- There is NO separate idle pose, at either tier. RESTING IS FRAME 0 OF THE
+  WALK CYCLE -- `cycle_progress` returns 0.0 when he is not moving, so it
+  falls out with no branch. Both tiers rest identically.
+- That is a deliberate constraint, not a gap. A directional idle set was tried
+  and reverted: seven separate stills genuinely differ in height by up to 4px
+  (the hood sits higher in some directions), and `figure_h` sets the SCALE, so
+  there is no good option. One shared `figure_h` swings his drawn height
+  between ~87 and ~97px as he turns; per-pose `figure_h` holds the height at
+  90px but makes the art scale vary 15%, shrinking his whole body and pixel
+  size in some directions. Resting on the walk cycle means ONE asset at ONE
+  `figure_h`, so nothing can resize him. Verified: a single distinct scale
+  (3.462) across resting, walking and pushing, every direction, both tiers.
+- Anything that reintroduces a per-direction idle has to solve that scale
+  problem first. Per-pose `figure_h` is NOT the answer -- it trades a height
+  wobble for a whole-body one, which is worse and harder to see in a test that
+  measures figure height.
 - The stand poses declare NO myth tier on purpose: there is no 8-bit standing
   pose in the design (8-bit idle is walk frame 0), so there is nothing honest
   to fall back to, and Assets raises loudly if the invariant is ever broken.
@@ -157,10 +150,12 @@ These matter more here than they would on a settled codebase, precisely
   same nine frames (the rumour set derived by `tools/build_rumour.py`), because
   once everything else stepped down, reverting to full colour on touching a
   crate read as a rendering bug rather than as a tier.
-- `sprites/player/myth/pushing/` and the top-level directional
-  `sprites/player/myth/<direction>.png` stills are now referenced by NOTHING --
-  not by Assets, and no longer by `tools/build_rumour.py`, which derives from
-  `myth/stand/` instead. Both are superseded and safe to delete.
+- Referenced by NOTHING and safe to delete: `sprites/player/myth/pushing/`,
+  the top-level `sprites/player/myth/<direction>.png` stills (the braced push
+  frame 0), `sprites/player/myth/stand/` (true idle art, generated for the
+  reverted directional-idle attempt), and `sprites/player/myth/2-bit-idle/`.
+  `myth/stand/` is the one worth keeping around: it is the only real 8-bit
+  standing art that exists, if a directional idle is ever attempted again.
 - The switch from 2-bit to 8-bit is currently INSTANT. Making it gradual is the
   outstanding piece; `drawable[:alpha]` is forwarded by `Renderer.push_sprite`
   but set by nobody, so a crossfade has a hook waiting.
