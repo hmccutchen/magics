@@ -86,27 +86,27 @@ module Player
     }
   }
 
-  # Which held pose to draw at :rumour, keyed the same way PUSH_POSES is:
-  # STAND_POSES[depth facing][horizontal facing] -> sprite name.
+  # Which held pose to draw at :rumour, keyed and shaped exactly like
+  # PUSH_POSES: STAND_POSES[depth facing][horizontal facing] -> [name, mirrored?].
   #
-  # Unlike the push table there is nothing mirrored here. The 2-bit set has a
-  # real south-west, so every direction is its own drawing and none of them
-  # need flipping.
+  # South-west mirrors south-east for the same reason the push table does: the
+  # base art has never had a south-west, and these poses are derived from it.
+  # Drawing one real south-west would fix both tables at once.
   STAND_POSES = {
      1 => {
-      -1 => :player_stand_north_west,
-       0 => :player_stand_north,
-       1 => :player_stand_north_east
+      -1 => [:player_stand_north_west, false],
+       0 => [:player_stand_north,      false],
+       1 => [:player_stand_north_east, false]
     },
      0 => {
-      -1 => :player_stand_west,
-       0 => :player_stand_south,
-       1 => :player_stand_east
+      -1 => [:player_stand_west,  false],
+       0 => [:player_stand_south, false],
+       1 => [:player_stand_east,  false]
     },
     -1 => {
-      -1 => :player_stand_south_west,
-       0 => :player_stand_south,
-       1 => :player_stand_south_east
+      -1 => [:player_stand_south_east, true],
+       0 => [:player_stand_south,      false],
+       1 => [:player_stand_south_east, false]
     }
   }
 
@@ -165,12 +165,11 @@ module Player
   # through the ordinary walk path above; this is only what he does when he
   # stops.
   #
-  # He therefore turns to face a real direction the moment he stops moving,
-  # including north and south-west, and returns to the mirrored side view as
-  # soon as he walks again. That swap is on purpose -- these eight are the
-  # only true directional art in the game -- but it IS a visible change of
-  # angle on stopping, and it is the thing to look at first if the 2-bit
-  # traveller reads oddly.
+  # He turns to face a real direction the moment he stops moving and returns
+  # to the mirrored side view as soon as he walks again. That swap is on
+  # purpose -- the walk cycle is one side view and these are true directions --
+  # but it IS a visible change of angle on stopping, and it is the thing to
+  # look at first if the 2-bit traveller reads oddly.
   #
   # facing_x and facing_depth persist while he stands still, so he keeps
   # looking the way he last walked rather than snapping back to a default.
@@ -180,11 +179,12 @@ module Player
     player = args.state.player
 
     row  = STAND_POSES[player.facing_depth.to_i] || STAND_POSES[0]
-    pose = row[player.facing_x.to_i] || :player_stand_south
+    pose = row[player.facing_x.to_i] || [:player_stand_south, false]
 
     {
       entity: player,
-      sprite: pose,
+      sprite: pose[0],
+      flip: pose[1],
       tier: tier
     }
   end

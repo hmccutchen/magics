@@ -93,21 +93,40 @@ These matter more here than they would on a settled codebase, precisely
   that does. The step-up hangs off `Seams.revealed?` (permanent), NOT
   `Pattern.complete?` (recomputed live from where the blocks sit, and false
   again if one is shoved back out).
-- `:rumour` has both a walk cycle and idle art. WALKING uses `player_walk` at
-  its rumour tier (`2-bit-idle/2-bit-walking/frame_000..007`), the same eight
-  frames/one-mirrored-side-view shape as the myth cycle, so cadence carries
-  across the step-up and only fidelity changes. Its `figure_h` is 27, not the
-  myth cycle's 26, because that is what the art measures -- declaring it
-  truthfully is what makes both cycles draw the figure at the same 90px.
-- STANDING STILL at `:rumour` uses `Assets::STAND_POSE_FILES`: eight held
-  directional poses in `sprites/player/myth/2-bit-idle/`. These are the only
-  real 8-direction art in the game, so the 2-bit traveller is the only one who
-  genuinely faces north or south-west -- he turns to a true direction when he
-  stops and returns to the mirrored side view when he walks. That angle swap
-  on stopping is intended, and is the first thing to look at if he reads oddly.
-  The stand poses declare NO myth tier on purpose: there is no 8-bit standing
+- The `:rumour` player art is DERIVED from the myth art, not drawn: it is a
+  BUILD PRODUCT of `tools/build_rumour.py` (`python3 tools/build_rumour.py
+  sprites/player`). Re-run it after changing any myth player sprite; never
+  hand-edit anything under `sprites/player/rumour/`. Deriving is what keeps
+  the two tiers from drifting and what makes the geometry identical rather
+  than merely similar -- both cycles now draw at 138.5px, so the step-up
+  changes fidelity and nothing else.
+- Two reductions, and BOTH matter: four colours (the Game Boy DMG ramp) and
+  half the spatial resolution (2x2 blocks vote on one tone). Recolouring alone
+  keeps every pixel of 8-bit detail, so resolving would read as a palette swap
+  rather than as detail arriving. The luminance cuts (12/88/140) come from the
+  8-bit art's own distribution, not even steps -- 38% of its pixels are pure
+  black outline and the coat spans 57-83, so even bands put 88% of the figure
+  into two tones and it reads as a blob.
+- The block grid is anchored to the FIGURE'S FEET, not the canvas. Canvas
+  alignment made his feet snap a pixel up and down between frames (~3.5 screen
+  px of bob the 8-bit art does not have). Foot anchoring reproduces the
+  source's registration exactly -- verified: the derived frames carry the same
+  `foot_pad` 7/8/7 pattern the myth frames do.
+- WALKING at `:rumour` uses `player_walk`'s rumour tier
+  (`sprites/player/rumour/walk/`); STANDING STILL uses
+  `Assets::STAND_POSE_FILES` (`sprites/player/rumour/stand/`). SEVEN stills,
+  not eight -- south-west has never existed in the base set, so `STAND_POSES`
+  mirrors south-east exactly as `PUSH_POSES` does. Drawing one real south-west
+  would fix both tables at once. He turns to a true direction when he stops
+  and returns to the mirrored side view when walking; that angle swap is
+  intended, and is the first thing to check if he reads oddly.
+- The stand poses declare NO myth tier on purpose: there is no 8-bit standing
   pose in the design (8-bit idle is walk frame 0), so there is nothing honest
   to fall back to, and Assets raises loudly if the invariant is ever broken.
+- `sprites/player/myth/2-bit-idle/` (the hand-generated greyscale 2-bit set)
+  is now UNREFERENCED. It was three tonal levels of pure grey spread over 16
+  noisy colours -- neither 2-bit nor tinted -- which is why the low tier is
+  derived instead. Safe to delete.
 - PUSHING is deliberately held back at 8-bit: the push poses declare no
   `:rumour` tier, so Assets falls back and logs it once. Drawing 2-bit push art
   and declaring it is the whole change when that art exists.

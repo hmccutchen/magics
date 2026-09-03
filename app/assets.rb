@@ -34,29 +34,18 @@ module Assets
   # compass direction, not an animation.
   ASSETS = {
     player_walk: {
-      # The 2-bit walk. Same shape as the myth cycle -- eight frames on a
-      # 40x40 canvas, one side view mirrored for both directions -- so the
-      # traveller keeps his cadence across the step-up and only his fidelity
-      # changes.
-      #
-      # figure_h is 27 rather than the myth cycle's 26 because that is what
-      # this art actually measures. The value is "how tall is the figure in
-      # these files", and declaring it truthfully is what makes two differently
-      # drawn cycles come out the same size on screen: 90px of traveller
-      # either way. Copying 26 across would have drawn him 3px taller at 2-bit
-      # than at 8-bit, which would read as him shrinking when he resolves.
-      #
-      # One value for all eight even though they measure 26 to 28, and one
-      # foot_pad even though they measure 6 to 7 -- both modal. Same reasoning
-      # as the push poses: a per-file figure height would resize him as his
-      # legs passed. The art's own 2px of wobble stays, deliberately; it is a
-      # property of the drawing, not something to average away here.
+      # The 2-bit walk, DERIVED from the myth cycle rather than drawn
+      # separately: same eight frames, same poses, same cadence, reduced to
+      # four colours and half the spatial resolution. Because it comes from
+      # the same art, its geometry is identical to the myth cycle's below --
+      # not copied, measured -- so the traveller does not move or resize when
+      # he resolves. Only his fidelity changes, which is the whole point.
       rumour: {
-        dir: 'sprites/player/myth/2-bit-idle/2-bit-walking',
+        dir: 'sprites/player/rumour/walk',
         frames: 8,
         canvas_w: 40,
         canvas_h: 40,
-        figure_h: 27,
+        figure_h: 26,
         foot_pad: 7
       },
 
@@ -115,30 +104,20 @@ module Assets
     }
   end
 
-  # The 2-bit traveller: eight held directional poses and nothing else.
+  # The 2-bit traveller standing still: the myth directional stills, reduced.
   #
-  # He does not animate at this tier. There is no walk cycle and no push art,
-  # so standing and walking both draw the same held pose -- which is the point
-  # rather than a gap to apologise for: at 2-bit there is not enough of him
-  # recorded yet to show him moving.
+  # SEVEN, not eight -- the base set has never had a south-west, so STAND_POSES
+  # in player.rb mirrors south-east for it, exactly as PUSH_POSES does. Drawing
+  # a real south-west would give both tiers an eighth at once.
   #
-  # In one respect this is MORE faithful than the 8-bit art, not less. The
-  # 8-bit walk cycle is a single side view mirrored for both directions, so
-  # the traveller has never actually faced into or out of the scene. These
-  # eight are real directions, south-west included -- the one the 8-bit set
-  # still lacks.
-  #
-  # Registered on the same canvas geometry as the push poses (32x32,
-  # figure_h 26, foot_pad 3), which is measured from the art, not assumed: he
-  # therefore does not change size or lift off the ground at the moment the
-  # bit style steps up.
+  # Same 32x32 / figure_h 26 / foot_pad 3 geometry as the myth stills they come
+  # from, measured rather than assumed.
   STAND_POSE_FILES = {
     player_stand_north:      'north.png',
     player_stand_north_east: 'north-east.png',
     player_stand_east:       'east.png',
     player_stand_south_east: 'south-east.png',
     player_stand_south:      'south.png',
-    player_stand_south_west: 'south-west.png',
     player_stand_west:       'west.png',
     player_stand_north_west: 'north-west.png'
   }
@@ -153,7 +132,7 @@ module Assets
   STAND_POSE_FILES.each do |name, file|
     ASSETS[name] = {
       rumour: {
-        dir: 'sprites/player/myth/2-bit-idle',
+        dir: 'sprites/player/rumour/stand',
         files: [file],
         canvas_w: 32,
         canvas_h: 32,
